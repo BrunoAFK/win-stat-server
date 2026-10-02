@@ -265,512 +265,233 @@ $html = @'
 <style>
 :root{
   color-scheme:dark;
-  --bg:#080b10;--panel:#0f151f;--panel2:#141c28;--panel3:#192331;
-  --line:#243143;--line2:#1c2735;--text:#eef3fa;--muted:#8796aa;
-  --soft:#b6c2d2;--accent:#6ca7ff;--good:#75d59a;--warn:#f0c56e;--bad:#ef8080;
+  --bg:#070a0f;--panel:#0e141d;--panel2:#121a26;--panel3:#182333;
+  --line:#223043;--line-soft:#192534;--text:#eef4fb;--muted:#8392a8;
+  --accent:#6ea8ff;--accent2:#8bc1ff;--good:#74d49a;--warn:#efc56c;--bad:#ee7a86;
+  --shadow:0 12px 35px rgba(0,0,0,.20);
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text)}
+html,body{margin:0;background:var(--bg);color:var(--text);min-height:100%}
 body{min-height:100vh}
-.wrap{max-width:1800px;margin:auto;padding:20px}
-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:14px}
-.brand h1{margin:0;font-size:23px;letter-spacing:-.03em}
-.brand p{margin:5px 0 0;font-size:12px;color:var(--muted)}
-.badge{padding:7px 11px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:11px;font-weight:700;letter-spacing:.08em}
-.badge.live{color:var(--good)}
-.badge.offline{color:var(--bad)}
-.toolbar{
-  position:sticky;top:0;z-index:20;
-  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-  padding:10px 0 13px;background:rgba(8,11,16,.93);backdrop-filter:blur(14px)
+button,input,select{font:inherit}
+button,select,input[type="text"]{
+  background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:9px;
 }
-button,select,input{
-  font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);
-  border-radius:9px;min-height:38px
-}
-button{padding:8px 12px;cursor:pointer}
+button{cursor:pointer;padding:8px 11px;min-height:36px}
 button:hover{background:var(--panel2)}
-button.primary{background:#17243a;border-color:#31507b}
-button.danger{border-color:#54323a}
-input{padding:8px 11px;outline:none}
-.search{flex:1;min-width:240px}
-select{padding:7px 9px}
-.section-title{display:flex;align-items:end;justify-content:space-between;gap:15px;margin:20px 0 9px}
-.section-title h2{font-size:14px;margin:0;letter-spacing:.02em}
-.section-title .hint{font-size:11px;color:var(--muted)}
-.overview{
- display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-bottom:16px
-}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:12px}
-.kpi .name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.kpi .value{font-size:21px;font-weight:750;margin-top:5px;font-variant-numeric:tabular-nums}
-.kpi .sub{font-size:10px;color:var(--muted);margin-top:3px}
-.pin-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(315px,1fr));gap:10px}
-.pin-card{
- background:linear-gradient(180deg,var(--panel2),var(--panel));
- border:1px solid var(--line);border-radius:15px;overflow:hidden;min-width:0
-}
-.pin-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px 12px 8px}
-.pin-title{min-width:0}
-.pin-title .label{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pin-title .sensor{font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pin-actions{display:flex;gap:5px}
-.iconbtn{padding:5px 8px;min-height:28px;border-radius:7px;font-size:11px}
-.pin-main{display:flex;align-items:end;justify-content:space-between;gap:10px;padding:0 12px 10px}
-.big-value{font-size:31px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.unit{font-size:11px;color:var(--muted);margin-left:4px;font-weight:500}
-.pin-mode{font-size:10px;color:var(--muted);margin-top:2px}
-.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line2);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)}
-.mini{background:var(--panel);padding:7px 8px;min-width:0}
-.mini .n{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.mini .v{font-size:12px;font-weight:650;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-.chart-wrap{height:110px;padding:7px 9px 9px;position:relative}
-.chart-wrap canvas{width:100%;height:100%;display:block}
-.chart-meta{position:absolute;left:11px;bottom:8px;font-size:9px;color:var(--muted);pointer-events:none}
-.card-controls{display:flex;align-items:center;gap:6px;padding:8px 10px;border-top:1px solid var(--line2)}
-.card-controls select{font-size:10px;min-height:30px;padding:4px 6px}
-.card-controls label{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
-.card-controls input[type=checkbox]{min-height:auto}
-.empty-pins{
- border:1px dashed var(--line);border-radius:13px;padding:22px;text-align:center;color:var(--muted);font-size:12px
-}
-.fps-lab{
- display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:10px 0 17px
-}
-.metric{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px}
-.metric .n{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
-.metric .v{font-size:19px;font-weight:750;margin-top:4px;font-variant-numeric:tabular-nums}
-.metric .d{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.35}
-.sensor-groups{display:grid;gap:8px}
-.group{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.group-head{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;background:var(--panel2);cursor:pointer}
-.group-title{font-weight:700;font-size:12px}
-.group-count{font-size:10px;color:var(--muted)}
-table{border-collapse:collapse;width:100%;font-size:11px}
-th,td{border-top:1px solid var(--line2);padding:7px 9px;text-align:right;font-variant-numeric:tabular-nums}
-th{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:#0d131c}
-th:first-child,td:first-child{text-align:center;width:38px}
-th:nth-child(2),td:nth-child(2){text-align:left;width:43%}
-.sensor-label{color:#c8d2df}
-.star{border:0;background:transparent;padding:2px 4px;min-height:0;font-size:16px;line-height:1;opacity:.55}
-.star.on{opacity:1}
+button.primary{background:#162642;border-color:#315682}
+button.danger{border-color:#63343d}
+button.ghost{background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+select{padding:7px 9px;min-height:36px}
+input[type="text"]{padding:8px 11px;min-height:36px;outline:none}
+.wrap{max-width:1900px;margin:auto;padding:18px 20px 34px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:12px}
+.brand h1{font-size:23px;margin:0;letter-spacing:-.035em}.brand p{font-size:12px;color:var(--muted);margin:5px 0 0}
+.livebox{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.badge{font-size:10px;font-weight:800;letter-spacing:.09em;border:1px solid var(--line);padding:7px 9px;border-radius:999px;background:var(--panel2)}
+.badge.live{color:var(--good)}.badge.stale{color:var(--warn)}.badge.offline{color:var(--bad)}
+.age{font-size:11px;color:var(--muted)}
+.toolbar{position:sticky;top:0;z-index:40;background:rgba(7,10,15,.94);backdrop-filter:blur(14px);padding:9px 0 11px;border-bottom:1px solid rgba(34,48,67,.45);margin-bottom:12px}
+.toolbar-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.toolbar-row+.toolbar-row{margin-top:7px}
+.search{flex:1;min-width:250px}.spacer{flex:1}
+.sep{height:24px;width:1px;background:var(--line);margin:0 2px}.label-mini{font-size:10px;color:var(--muted)}
+.err{background:#2c161c;border:1px solid #62313b;color:#f2c3cb;padding:12px 13px;border-radius:11px;margin-bottom:11px}
+.sessionbar{display:flex;gap:13px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:10px;margin:10px 0}
+.sessionbar strong{color:#c9d3e0;font-weight:650}.dot{width:5px;height:5px;border-radius:99px;background:var(--line);display:inline-block}
+.overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:9px 0 16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px;box-shadow:var(--shadow)}
+.kpi .k{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.kpi .v{font-size:21px;font-weight:780;letter-spacing:-.025em;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:9px;color:var(--muted);margin-top:2px}
+.sectionhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:20px 0 8px}
+.sectionhead h2{font-size:14px;margin:0}.sectionhead p{font-size:10px;color:var(--muted);margin:3px 0 0}
+.global-card-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dropzone{border:1px dashed #304761;border-radius:13px;padding:11px;text-align:center;color:var(--muted);font-size:10px;margin-bottom:9px;transition:.15s background,.15s border}
+.dropzone.dragover{background:#101e31;border-color:#6ea8ff;color:#cfe3ff}
+.pingrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:10px}
+.pin-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);min-width:0;transition:.15s border,.15s transform}
+.pin-card.dragging{opacity:.55}.pin-card.drag-target{border-color:var(--accent);transform:translateY(-2px)}
+.pin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;padding:10px 11px 7px}
+.pin-left{display:flex;gap:8px;align-items:flex-start;min-width:0}.draghandle{font-size:16px;line-height:1;color:#68798f;cursor:grab;padding-top:2px;user-select:none}
+.pin-title{min-width:0}.pin-title .l{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pin-title .g{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.pin-actions{display:flex;gap:4px}.iconbtn{padding:4px 7px;min-height:27px;font-size:10px;border-radius:7px}
+.pin-primary{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:0 11px 9px}
+.big{font-size:29px;font-weight:800;letter-spacing:-.035em;font-variant-numeric:tabular-nums}.smallmode{font-size:9px;color:var(--muted);margin-top:2px}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-soft);border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+.sbox{background:var(--panel);padding:6px 7px;min-width:0}.sbox .k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.sbox .v{font-size:11px;font-weight:650;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.chartbox{height:126px;position:relative;padding:6px 8px 8px;touch-action:none}
+.chartbox canvas{width:100%;height:100%;display:block}
+.chart-legend{position:absolute;left:10px;bottom:7px;font-size:8px;color:var(--muted);pointer-events:none}
+.chart-tooltip{position:fixed;z-index:100;display:none;pointer-events:none;background:#0a1019;border:1px solid #31445e;border-radius:8px;padding:7px 8px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:10px;line-height:1.4;min-width:118px}
+.chart-tooltip .time{color:var(--muted)}.chart-tooltip .val{font-size:13px;font-weight:750;margin-top:2px}
+.pin-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 9px;border-top:1px solid var(--line-soft)}
+.pin-foot select{font-size:9px;min-height:29px;padding:4px 6px}.check{font-size:9px;color:var(--muted);display:flex;gap:4px;align-items:center}.check input{margin:0}
+.empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:11px}
+.fpsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.metric{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px}.metric .k{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.metric .v{font-size:18px;font-weight:760;margin-top:4px;font-variant-numeric:tabular-nums}.metric .d{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.35}
+.groups{display:grid;gap:7px}.group{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel2);padding:9px 11px;cursor:pointer}.group-name{font-size:11px;font-weight:700}.group-count{font-size:9px;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;border-top:1px solid var(--line-soft);text-align:right;font-variant-numeric:tabular-nums}th{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:#0c121a}th:first-child,td:first-child{text-align:center;width:30px}th:nth-child(2),td:nth-child(2){text-align:left;width:43%}.sensorlabel{color:#c8d3e0}.star{background:transparent;border:0;min-height:0;padding:1px 3px;font-size:14px;opacity:.55}.star.on{opacity:1}.sensor-row{cursor:grab}.sensor-row.dragging{opacity:.45}
 .hidden{display:none!important}
-.err{padding:13px;border-radius:11px;background:#2b171c;border:1px solid #62323a;color:#f4c3ca;margin-bottom:12px}
-.note{font-size:10px;color:var(--muted);line-height:1.45}
-.session-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:10px;color:var(--muted);margin-bottom:8px}
-.session-bar strong{color:var(--soft);font-weight:650}
-@media(max-width:760px){
- .wrap{padding:12px}
- header{flex-direction:column}
- .stats4{grid-template-columns:repeat(2,1fr)}
- th:nth-child(n+4),td:nth-child(n+4){display:none}
-}
+.flash{animation:flash .38s ease}@keyframes flash{0%{box-shadow:0 0 0 0 rgba(110,168,255,.45)}100%{box-shadow:0 0 0 10px rgba(110,168,255,0)}}
+@media(max-width:800px){.wrap{padding:11px}.pingrid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.livebox{justify-content:flex-start}.sep{display:none}th:nth-child(n+4),td:nth-child(n+4){display:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
- <div class="brand">
-  <h1>HWiNFO Performance Lab</h1>
-  <p id="meta">Waiting for HWiNFO shared memory…</p>
- </div>
- <div class="badge" id="status">CONNECTING</div>
+ <div class="brand"><h1>HWiNFO Performance Lab</h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
+ <div class="livebox"><span class="badge" id="status">CONNECTING</span><span class="age" id="age">—</span></div>
 </header>
 
 <div class="toolbar">
- <input class="search" id="q" placeholder="Search sensors — GPU, CPU, temperature, PresentMon, clock, power…">
- <select id="window">
-  <option value="60">60 s graph</option>
-  <option value="300" selected>5 min graph</option>
-  <option value="900">15 min graph</option>
-  <option value="1800">30 min graph</option>
- </select>
- <button id="essentials" class="primary">Pin essentials</button>
- <button id="pause">Pause</button>
- <button id="reset" class="danger">Reset session</button>
- <button id="export">Export CSV</button>
+ <div class="toolbar-row">
+  <input class="search" type="text" id="search" placeholder="Search all readings — GPU, CPU, PresentMon, VRAM, SSD, temperature…">
+  <span class="label-mini">Graph</span>
+  <select id="window"><option value="60">60 s</option><option value="300" selected>5 min</option><option value="900">15 min</option><option value="1800">30 min</option><option value="3600">60 min</option></select>
+  <span class="label-mini">Browser poll</span>
+  <select id="clientPoll"><option value="250">250 ms</option><option value="500" selected>500 ms</option><option value="1000">1 s</option><option value="2000">2 s</option></select>
+  <button class="primary" id="essentials">Pin essentials</button>
+  <button id="pause">Pause</button>
+  <button class="danger" id="reset">Reset session</button>
+  <button id="export">Export CSV</button>
+ </div>
+ <div class="toolbar-row">
+  <span class="label-mini">All sensor groups</span>
+  <button id="expandAll">Expand</button><button id="collapseAll">Collapse</button>
+  <span class="sep"></span>
+  <span class="label-mini">All pinned cards</span>
+  <button id="graphsOn">Graphs on</button><button id="graphsOff">Graphs off</button>
+  <select id="globalMode"><option value="all">Show all stats</option><option value="current">Current only</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select>
+  <button id="applyMode">Apply mode</button>
+  <span class="spacer"></span>
+  <button class="danger" id="clearPins">Clear pins</button>
+ </div>
 </div>
 
 <div id="error"></div>
-
-<div class="session-bar">
- <span>Session: <strong id="elapsed">00:00</strong></span>
- <span>Samples: <strong id="samples">0</strong></span>
- <span>Polling: <strong id="poll">—</strong></span>
- <span>History starts when a sensor is pinned.</span>
+<div class="sessionbar">
+ <span>Session <strong id="elapsed">00:00</strong></span><span class="dot"></span>
+ <span>Client samples <strong id="sampleCount">0</strong></span><span class="dot"></span>
+ <span>HWiNFO poll <strong id="sourcePoll">—</strong></span><span class="dot"></span>
+ <span>Last source update <strong id="sourceUpdate">—</strong></span>
 </div>
 
 <div class="overview">
- <div class="kpi"><div class="name">FPS</div><div class="value" id="ov-fps">—</div><div class="sub">PresentMon</div></div>
- <div class="kpi"><div class="name">Frame time</div><div class="value" id="ov-ft">—</div><div class="sub">PresentMon</div></div>
- <div class="kpi"><div class="name">GPU load</div><div class="value" id="ov-gpu">—</div><div class="sub">graphics core</div></div>
- <div class="kpi"><div class="name">GPU temp</div><div class="value" id="ov-gt">—</div><div class="sub">current</div></div>
- <div class="kpi"><div class="name">CPU total</div><div class="value" id="ov-cpu">—</div><div class="sub">usage</div></div>
- <div class="kpi"><div class="name">CPU temp</div><div class="value" id="ov-ct">—</div><div class="sub">package / Tctl</div></div>
+ <div class="kpi"><div class="k">FPS</div><div class="v" id="ovFps">—</div><div class="s">PresentMon</div></div>
+ <div class="kpi"><div class="k">Frame time</div><div class="v" id="ovFt">—</div><div class="s">PresentMon</div></div>
+ <div class="kpi"><div class="k">GPU load</div><div class="v" id="ovGpu">—</div><div class="s">core load</div></div>
+ <div class="kpi"><div class="k">GPU temp</div><div class="v" id="ovGt">—</div><div class="s">current</div></div>
+ <div class="kpi"><div class="k">CPU total</div><div class="v" id="ovCpu">—</div><div class="s">usage</div></div>
+ <div class="kpi"><div class="k">CPU temp</div><div class="v" id="ovCt">—</div><div class="s">package / Tctl</div></div>
 </div>
 
-<div class="section-title">
- <div><h2>Pinned telemetry</h2><div class="hint">Your performance cockpit — each card keeps its own session history.</div></div>
-</div>
-<div id="pins"></div>
+<div class="sectionhead"><div><h2>Pinned telemetry</h2><p>Drag cards to reorder. Drag any row from the sensor list into this area to pin it.</p></div></div>
+<div class="dropzone" id="dropzone">Drop a sensor here to pin it • pin order is saved in this browser</div>
+<div id="pinHost" class="pingrid"></div>
 
-<div class="section-title">
- <div><h2>FPS session analysis</h2><div class="hint">Percentiles below are based on sampled HWiNFO values, not raw per-frame PresentMon events.</div></div>
-</div>
-<div class="fps-lab">
- <div class="metric"><div class="n">Session avg FPS</div><div class="v" id="fpsavg">—</div><div class="d">Average of collected FPS samples</div></div>
- <div class="metric"><div class="n">Sampled P1 FPS</div><div class="v" id="fpsp1">—</div><div class="d">1st percentile of collected FPS samples</div></div>
- <div class="metric"><div class="n">Sampled P0.1 FPS</div><div class="v" id="fpsp01">—</div><div class="d">0.1st percentile; needs a long session to be meaningful</div></div>
- <div class="metric"><div class="n">FPS min / max</div><div class="v" id="fpsrange">—</div><div class="d">Since last session reset</div></div>
- <div class="metric"><div class="n">Frame-time P99</div><div class="v" id="ftp99">—</div><div class="d">99th percentile of sampled frame-time values</div></div>
- <div class="metric"><div class="n">Frame-time max</div><div class="v" id="ftmax">—</div><div class="d">Largest sampled frame-time value</div></div>
+<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Based on HWiNFO polling samples. For exact per-frame 1% / 0.1% lows we would integrate raw PresentMon next.</p></div></div>
+<div class="fpsgrid">
+ <div class="metric"><div class="k">Average FPS</div><div class="v" id="fpsAvg">—</div><div class="d">Session sample average</div></div>
+ <div class="metric"><div class="k">Sampled P5 FPS</div><div class="v" id="fpsP5">—</div><div class="d">5th percentile</div></div>
+ <div class="metric"><div class="k">Sampled P1 FPS</div><div class="v" id="fpsP1">—</div><div class="d">1st percentile</div></div>
+ <div class="metric"><div class="k">Sampled P0.1 FPS</div><div class="v" id="fpsP01">—</div><div class="d">Needs a long run</div></div>
+ <div class="metric"><div class="k">FPS range</div><div class="v" id="fpsRange">—</div><div class="d">Session min / max</div></div>
+ <div class="metric"><div class="k">Frame-time P95</div><div class="v" id="ftP95">—</div><div class="d">Sample percentile</div></div>
+ <div class="metric"><div class="k">Frame-time P99</div><div class="v" id="ftP99">—</div><div class="d">Sample percentile</div></div>
+ <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Largest sampled value</div></div>
 </div>
 
-<div class="section-title">
- <div><h2>All HWiNFO sensors</h2><div class="hint">★ pins any reading to the dashboard above.</div></div>
+<div class="sectionhead">
+ <div><h2>All HWiNFO sensors</h2><p>Current cells update in place — opening a dropdown or selecting text is no longer interrupted by refreshes.</p></div>
 </div>
-<div id="groups" class="sensor-groups"></div>
+<div id="groups" class="groups"></div>
 </div>
+<div class="chart-tooltip" id="tooltip"><div class="time"></div><div class="val"></div></div>
 
 <script>
-let latest=null, paused=false, timer=null;
-let sessionStart=Date.now(), globalSamples=0;
-let histories=new Map();
-let collapsed=new Set();
-let fpsKey=null, frameTimeKey=null;
-
-const PIN_KEY='hwinfo-perf-lab-pins-v3';
-const OPT_KEY='hwinfo-perf-lab-options-v3';
-
-let pins=JSON.parse(localStorage.getItem(PIN_KEY)||'[]');
-let pinOpts=JSON.parse(localStorage.getItem(OPT_KEY)||'{}');
-
+'use strict';
+const S={
+ latest:null, paused:false, inFlight:false, pollTimer:null, lastFetchAt:0, lastSourcePoll:0,
+ sessionStart:Date.now(), samples:0, histories:new Map(), collapsed:new Set(),
+ topology:'', fpsKey:null, ftKey:null, draggingKey:null, hoverCharts:new Map(),
+ pins:JSON.parse(localStorage.getItem('hpl-v4-pins')||'[]'),
+ opts:JSON.parse(localStorage.getItem('hpl-v4-opts')||'{}')
+};
+const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const keyOf=r=>`${r.SensorIndex}:${r.ReadingId}`;
+const finite=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v));
+const n=v=>finite(v)?Number(v):null;
 const textOf=r=>`${r.Sensor||''} ${r.SensorOriginal||''} ${r.Label||''} ${r.LabelOriginal||''} ${r.Unit||''}`.toLowerCase();
-const num=v=>(v===null||v===undefined||!Number.isFinite(Number(v)))?null:Number(v);
+const save=()=>{localStorage.setItem('hpl-v4-pins',JSON.stringify(S.pins));localStorage.setItem('hpl-v4-opts',JSON.stringify(S.opts));};
+function fmt(v,u,short=false){v=n(v);if(v===null)return '—';let d=Math.abs(v)>=1000?0:Math.abs(v)>=100?1:2;if(short&&Math.abs(v)>=100)d=0;return `${v.toFixed(d)}${u?' '+u:''}`}
+function qtile(values,q){const a=values.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!a.length)return null;if(a.length===1)return a[0];const p=(a.length-1)*q,lo=Math.floor(p),hi=Math.ceil(p);return a[lo]+(a[hi]-a[lo])*(p-lo)}
+function calc(a){const v=(a||[]).map(x=>x.v).filter(Number.isFinite);if(!v.length)return{cur:null,min:null,max:null,avg:null,count:0};return{cur:v[v.length-1],min:Math.min(...v),max:Math.max(...v),avg:v.reduce((x,y)=>x+y,0)/v.length,count:v.length}}
+function reading(k){return S.latest?.Readings?.find(r=>keyOf(r)===k)||null}
+function find(regexes){if(!S.latest?.Ok)return null;for(const re of regexes){const r=S.latest.Readings.find(x=>re.test(`${x.Sensor||''} ${x.Label||''}`));if(r)return r}return null}
+function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
 
-function nice(n,u,decimals=null){
- n=num(n); if(n===null) return '—';
- let d=decimals!==null?decimals:(Math.abs(n)>=1000?0:Math.abs(n)>=100?1:2);
- return `${n.toFixed(d)}${u?` ${u}`:''}`;
-}
-function qtile(a,q){
- const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);
- if(!x.length)return null;
- if(x.length===1)return x[0];
- const p=(x.length-1)*q, lo=Math.floor(p), hi=Math.ceil(p);
- return x[lo]+(x[hi]-x[lo])*(p-lo);
-}
-function stats(arr){
- const v=arr.map(x=>x.v).filter(Number.isFinite);
- if(!v.length)return {cur:null,min:null,max:null,avg:null,count:0};
- return {cur:v[v.length-1],min:Math.min(...v),max:Math.max(...v),avg:v.reduce((a,b)=>a+b,0)/v.length,count:v.length};
-}
-function findReading(regexes){
- if(!latest?.Ok)return null;
- for(const re of regexes){
-   const x=latest.Readings.find(r=>re.test(`${r.Sensor||''} ${r.Label||''}`));
-   if(x)return x;
- }
- return null;
-}
-function rememberPin(k){
- if(!pins.includes(k)){pins.push(k);localStorage.setItem(PIN_KEY,JSON.stringify(pins));}
- if(!pinOpts[k])pinOpts[k]={mode:'all',graph:true};
- localStorage.setItem(OPT_KEY,JSON.stringify(pinOpts));
-}
-function unpin(k){
- pins=pins.filter(x=>x!==k);
- localStorage.setItem(PIN_KEY,JSON.stringify(pins));
- render();
-}
-function setMode(k,v){ pinOpts[k]=pinOpts[k]||{}; pinOpts[k].mode=v; localStorage.setItem(OPT_KEY,JSON.stringify(pinOpts)); renderPins(); }
-function setGraph(k,v){ pinOpts[k]=pinOpts[k]||{}; pinOpts[k].graph=v; localStorage.setItem(OPT_KEY,JSON.stringify(pinOpts)); renderPins(); }
+function ensureOpt(k){if(!S.opts[k])S.opts[k]={mode:'all',graph:true,smooth:false};return S.opts[k]}
+function pin(k,index=null){if(!k||S.pins.includes(k))return;ensureOpt(k);if(index===null||index<0||index>S.pins.length)S.pins.push(k);else S.pins.splice(index,0,k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
+function unpin(k){S.pins=S.pins.filter(x=>x!==k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
+function reorder(k,beforeKey=null){const old=S.pins.indexOf(k);if(old>=0)S.pins.splice(old,1);if(beforeKey&&S.pins.includes(beforeKey))S.pins.splice(S.pins.indexOf(beforeKey),0,k);else S.pins.push(k);save();syncPinsStructure();updateDynamic()}
+function setOpt(k,key,val){ensureOpt(k)[key]=val;save();const card=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(card){applyCardPresentation(card,k);drawOneCard(card,k)}}
 
-function addSample(k,v){
- v=num(v); if(v===null)return;
- if(!histories.has(k))histories.set(k,[]);
- const a=histories.get(k), now=Date.now();
- a.push({t:now,v});
- const keep=60*60*1000;
- while(a.length && now-a[0].t>keep)a.shift();
-}
+function addSample(k,val){val=n(val);if(val===null)return;if(!S.histories.has(k))S.histories.set(k,[]);const a=S.histories.get(k),now=Date.now();a.push({t:now,v:val});const keep=3600e3;while(a.length&&now-a[0].t>keep)a.shift()}
+function sample(){if(!S.latest?.Ok||S.paused)return;S.samples++;const fps=find([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]);const ft=find([/presentmon.*frame time/i,/frame time/i]);if(fps){S.fpsKey=keyOf(fps);addSample(S.fpsKey,fps.Value)}if(ft){S.ftKey=keyOf(ft);addSample(S.ftKey,ft.Value)}for(const k of S.pins){if(k===S.fpsKey||k===S.ftKey)continue;const r=reading(k);if(r)addSample(k,r.Value)}}
 
-function drawChart(canvas, arr, unit){
- const ctx=canvas.getContext('2d');
- const rect=canvas.getBoundingClientRect();
- const dpr=Math.max(1,window.devicePixelRatio||1);
- const w=Math.max(1,Math.floor(rect.width*dpr)), h=Math.max(1,Math.floor(rect.height*dpr));
- if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
- ctx.clearRect(0,0,w,h);
- const seconds=Number(document.getElementById('window').value)||300;
- const cutoff=Date.now()-seconds*1000;
- const pts=arr.filter(x=>x.t>=cutoff&&Number.isFinite(x.v));
- if(pts.length<2)return;
- let vals=pts.map(x=>x.v), lo=Math.min(...vals), hi=Math.max(...vals);
- if(lo===hi){lo-=1;hi+=1}
- const pad=(hi-lo)*.12; lo-=pad;hi+=pad;
- const x0=4*dpr,y0=4*dpr,x1=w-4*dpr,y1=h-12*dpr;
- ctx.strokeStyle='rgba(135,150,170,.18)';ctx.lineWidth=1*dpr;
- for(let i=0;i<3;i++){const y=y0+(y1-y0)*i/2;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x1,y);ctx.stroke()}
- ctx.strokeStyle='rgba(108,167,255,.95)';ctx.lineWidth=1.6*dpr;ctx.beginPath();
- const t0=pts[0].t,t1=pts[pts.length-1].t||t0+1;
- pts.forEach((p,i)=>{
-   const x=x0+(x1-x0)*(p.t-t0)/Math.max(1,t1-t0);
-   const y=y1-(y1-y0)*(p.v-lo)/(hi-lo);
-   if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
- });
- ctx.stroke();
- ctx.fillStyle='rgba(135,150,170,.8)';ctx.font=`${9*dpr}px Segoe UI`;
- ctx.fillText(nice(hi,unit),5*dpr,10*dpr);
- ctx.fillText(nice(lo,unit),5*dpr,h-2*dpr);
-}
+function topologySignature(){if(!S.latest?.Ok)return '';return S.latest.Readings.map(r=>`${keyOf(r)}|${r.Sensor}|${r.Label}|${r.Unit}`).join('~')}
+function renderGroupsStructure(force=false){if(!S.latest?.Ok)return;const sig=topologySignature();const q=$('search').value.trim().toLowerCase();const fullSig=sig+'|q='+q;if(!force&&S.topology===fullSig)return;S.topology=fullSig;const grouped=new Map();for(const r of S.latest.Readings){if(q&&!textOf(r).includes(q))continue;const g=r.Sensor||`Sensor ${r.SensorIndex}`;(grouped.get(g)||grouped.set(g,[]).get(g)).push(r)}let html='';for(const [g,rows] of grouped){const closed=S.collapsed.has(g);html+=`<section class="group" data-group="${esc(g)}"><div class="group-head"><div class="group-name">${esc(g)}</div><div class="group-count">${rows.length} readings <span class="chev">${closed?'▸':'▾'}</span></div></div><div class="group-body ${closed?'hidden':''}"><table><thead><tr><th>Pin</th><th>Reading</th><th>Current</th><th>HWiNFO min</th><th>HWiNFO max</th><th>HWiNFO avg</th></tr></thead><tbody>${rows.map(r=>{const k=keyOf(r);return `<tr class="sensor-row" draggable="true" data-key="${k}"><td><button class="star ${S.pins.includes(k)?'on':''}" data-star="${k}">${S.pins.includes(k)?'★':'☆'}</button></td><td class="sensorlabel">${esc(r.Label)}</td><td data-cell="value" data-key="${k}">—</td><td data-cell="min" data-key="${k}">—</td><td data-cell="max" data-key="${k}">—</td><td data-cell="avg" data-key="${k}">—</td></tr>`}).join('')}</tbody></table></div></section>`} $('groups').innerHTML=html||'<div class="empty">No readings match the current search.</div>';bindGroupEvents();updateSensorCells()}
+function bindGroupEvents(){document.querySelectorAll('.group-head').forEach(h=>h.onclick=()=>{const g=h.closest('.group'),name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');if(body.classList.toggle('hidden')){S.collapsed.add(name);chev.textContent='▸'}else{S.collapsed.delete(name);chev.textContent='▾'}});document.querySelectorAll('.star').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.star;S.pins.includes(k)?unpin(k):pin(k)});document.querySelectorAll('.sensor-row').forEach(row=>{row.ondragstart=e=>{S.draggingKey=row.dataset.key;row.classList.add('dragging');e.dataTransfer.effectAllowed='copyMove';e.dataTransfer.setData('text/plain',S.draggingKey)};row.ondragend=()=>{row.classList.remove('dragging');S.draggingKey=null}})}
+function syncGroupStars(){document.querySelectorAll('[data-star]').forEach(b=>{const on=S.pins.includes(b.dataset.star);b.classList.toggle('on',on);b.textContent=on?'★':'☆'})}
+function updateSensorCells(){if(!S.latest?.Ok)return;for(const r of S.latest.Readings){const k=keyOf(r);for(const [field,val] of [['value',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){const el=document.querySelector(`[data-cell="${field}"][data-key="${CSS.escape(k)}"]`);if(el)el.textContent=fmt(val,r.Unit)}}}
 
-function renderOverview(){
- const fps=findReading([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]);
- const ft=findReading([/presentmon.*frame time/i,/frame time/i]);
- const gpu=findReading([/gpu core load/i,/gpu utilization/i]);
- const gt=findReading([/^gpu.*temperature/i]);
- const cpu=findReading([/total cpu usage/i,/cpu total/i]);
- const ct=findReading([/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu.*temperature/i]);
+function cardHtml(k,r){const o=ensureOpt(k);return `<article class="pin-card" draggable="true" data-key="${k}"><div class="pin-head"><div class="pin-left"><div class="draghandle" title="Drag to reorder">⋮⋮</div><div class="pin-title"><div class="l">${esc(r.Label)}</div><div class="g">${esc(r.Sensor)}</div></div></div><div class="pin-actions"><button class="iconbtn" data-unpin="${k}">Unpin</button></div></div><div class="pin-primary"><div><div class="big" data-pin-primary="${k}">—</div><div class="smallmode" data-pin-mode-label="${k}">Current</div></div></div><div class="statgrid" data-statgrid="${k}"><div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session min</div><div class="v" data-pin-stat="min" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session avg</div><div class="v" data-pin-stat="avg" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max" data-key="${k}">—</div></div></div><div class="chartbox" data-chartbox="${k}"><canvas data-chart="${k}"></canvas><div class="chart-legend" data-chartlegend="${k}">0 samples</div></div><div class="pin-foot"><select data-mode="${k}"><option value="all">All stats</option><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select><label class="check"><input type="checkbox" data-graph="${k}"> graph</label><label class="check"><input type="checkbox" data-smooth="${k}"> 5s avg</label></div></article>`}
+function syncPinsStructure(){const host=$('pinHost');const valid=S.pins.filter(k=>reading(k));if(!valid.length){host.innerHTML='<div class="empty" style="grid-column:1/-1">Nothing pinned. Drag a sensor here, click ☆, or use <b>Pin essentials</b>.</div>';return}const existing=[...host.querySelectorAll('.pin-card')].map(x=>x.dataset.key);if(existing.join('|')===valid.join('|'))return;host.innerHTML=valid.map(k=>cardHtml(k,reading(k))).join('');bindPinEvents();for(const k of valid)applyCardPresentation(host.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`),k)}
+function bindPinEvents(){document.querySelectorAll('.pin-card').forEach(card=>{const k=card.dataset.key;card.ondragstart=e=>{S.draggingKey=k;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',k)};card.ondragend=()=>{card.classList.remove('dragging');document.querySelectorAll('.drag-target').forEach(x=>x.classList.remove('drag-target'));S.draggingKey=null};card.ondragover=e=>{e.preventDefault();card.classList.add('drag-target');e.dataTransfer.dropEffect='move'};card.ondragleave=()=>card.classList.remove('drag-target');card.ondrop=e=>{e.preventDefault();e.stopPropagation();card.classList.remove('drag-target');const k2=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k2)return;if(!S.pins.includes(k2))pin(k2,S.pins.indexOf(k));else if(k2!==k)reorder(k2,k)};const sel=card.querySelector(`[data-mode="${CSS.escape(k)}"]`);sel.onchange=()=>setOpt(k,'mode',sel.value);const gr=card.querySelector(`[data-graph="${CSS.escape(k)}"]`);gr.onchange=()=>setOpt(k,'graph',gr.checked);const sm=card.querySelector(`[data-smooth="${CSS.escape(k)}"]`);sm.onchange=()=>setOpt(k,'smooth',sm.checked);const un=card.querySelector(`[data-unpin="${CSS.escape(k)}"]`);un.onclick=()=>unpin(k);const canvas=card.querySelector('canvas');bindChartHover(canvas,k)});}
+function applyCardPresentation(card,k){if(!card)return;const o=ensureOpt(k);const sel=card.querySelector('[data-mode]');if(sel&&sel.value!==o.mode)sel.value=o.mode;const graph=card.querySelector('[data-graph]');if(graph)graph.checked=o.graph!==false;const smooth=card.querySelector('[data-smooth]');if(smooth)smooth.checked=!!o.smooth;card.querySelector('[data-statgrid]').classList.toggle('hidden',o.mode!=='all');card.querySelector('[data-chartbox]').classList.toggle('hidden',o.graph===false);const label=card.querySelector('[data-pin-mode-label]');label.textContent=o.mode==='current'?'Current':o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current'}
 
- fpsKey=fps?keyOf(fps):fpsKey; frameTimeKey=ft?keyOf(ft):frameTimeKey;
- const put=(id,r)=>document.getElementById(id).textContent=r?nice(r.Value,r.Unit):'—';
- put('ov-fps',fps);put('ov-ft',ft);put('ov-gpu',gpu);put('ov-gt',gt);put('ov-cpu',cpu);put('ov-ct',ct);
-}
+function visibleHistory(k){const a=S.histories.get(k)||[],sec=Number($('window').value)||300,cut=Date.now()-sec*1000;return a.filter(p=>p.t>=cut&&Number.isFinite(p.v))}
+function rolling(points,ms=5000){const out=[];let left=0,sum=0;for(let i=0;i<points.length;i++){sum+=points[i].v;while(points[i].t-points[left].t>ms){sum-=points[left].v;left++}out.push({t:points[i].t,v:sum/(i-left+1)})}return out}
+function drawCanvas(canvas,k,hoverIndex=null){const r=reading(k);if(!r)return;const raw=visibleHistory(k),o=ensureOpt(k),pts=o.smooth?rolling(raw):raw;const box=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1),w=Math.max(1,Math.floor(box.width*dpr)),h=Math.max(1,Math.floor(box.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const c=canvas.getContext('2d');c.clearRect(0,0,w,h);if(pts.length<2){S.hoverCharts.set(k,{pts:[],plot:null});return}let vals=pts.map(x=>x.v),lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.10;lo-=pad;hi+=pad;const L=5*dpr,T=5*dpr,R=w-5*dpr,B=h-13*dpr;c.lineWidth=1*dpr;c.strokeStyle='rgba(131,146,168,.15)';for(let i=0;i<4;i++){const y=T+(B-T)*i/3;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()}const t0=pts[0].t,t1=pts.at(-1).t||t0+1;c.strokeStyle='rgba(110,168,255,.95)';c.lineWidth=1.6*dpr;c.beginPath();pts.forEach((p,i)=>{const x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();c.font=`${8*dpr}px Segoe UI`;c.fillStyle='rgba(131,146,168,.78)';c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);if(hoverIndex!==null&&hoverIndex>=0&&hoverIndex<pts.length){const p=pts[hoverIndex],x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);c.strokeStyle='rgba(238,244,251,.40)';c.lineWidth=1*dpr;c.beginPath();c.moveTo(x,T);c.lineTo(x,B);c.stroke();c.fillStyle='rgba(238,244,251,.95)';c.beginPath();c.arc(x,y,3*dpr,0,Math.PI*2);c.fill()}S.hoverCharts.set(k,{pts,plot:{L,R,T,B,t0,t1,lo,hi}})}
+function bindChartHover(canvas,k){canvas.onpointermove=e=>{const meta=S.hoverCharts.get(k);if(!meta?.pts?.length||!meta.plot)return;const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,ratio=Math.max(0,Math.min(1,x/Math.max(1,rect.width)));const target=meta.plot.t0+(meta.plot.t1-meta.plot.t0)*ratio;let best=0,bd=Infinity;meta.pts.forEach((p,i)=>{const d=Math.abs(p.t-target);if(d<bd){bd=d;best=i}});drawCanvas(canvas,k,best);const p=meta.pts[best],r=reading(k),tip=$('tooltip');tip.querySelector('.time').textContent=new Date(p.t).toLocaleTimeString();tip.querySelector('.val').textContent=fmt(p.v,r?.Unit||'');tip.style.display='block';let tx=e.clientX+12,ty=e.clientY+12;if(tx+150>innerWidth)tx=e.clientX-155;if(ty+70>innerHeight)ty=e.clientY-75;tip.style.left=tx+'px';tip.style.top=ty+'px'};canvas.onpointerleave=()=>{$('tooltip').style.display='none';drawCanvas(canvas,k,null)}}
+function drawOneCard(card,k){const r=reading(k);if(!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;card.querySelector('[data-pin-primary]').textContent=fmt(primary,r.Unit);for(const [field,val] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]])card.querySelector(`[data-pin-stat="${field}"]`).textContent=fmt(val,r.Unit);card.querySelector('[data-chartlegend]').textContent=`${st.count} samples${o.smooth?' • 5s rolling average':''}`;if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null)}
+function updatePins(){syncPinsStructure();document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key))}
 
-function renderFpsLab(){
- const fa=fpsKey?(histories.get(fpsKey)||[]):[];
- const fta=frameTimeKey?(histories.get(frameTimeKey)||[]):[];
- const fv=fa.map(x=>x.v).filter(Number.isFinite);
- const tv=fta.map(x=>x.v).filter(Number.isFinite);
- const set=(id,val)=>document.getElementById(id).textContent=val;
+function updateOverview(){const fps=find([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]),ft=find([/presentmon.*frame time/i,/frame time/i]),gpu=find([/gpu core load/i,/gpu utilization/i]),gt=find([/^gpu.*temperature/i]),cpu=find([/total cpu usage/i,/cpu total/i]),ct=find([/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu.*temperature/i]);if(fps)S.fpsKey=keyOf(fps);if(ft)S.ftKey=keyOf(ft);for(const [id,r] of [['ovFps',fps],['ovFt',ft],['ovGpu',gpu],['ovGt',gt],['ovCpu',cpu],['ovCt',ct]])$(id).textContent=r?fmt(r.Value,r.Unit):'—'}
+function updateFps(){const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);const set=(id,x)=>$(id).textContent=x;if(fv.length){set('fpsAvg',fmt(fv.reduce((a,b)=>a+b,0)/fv.length,'FPS'));set('fpsP5',fv.length>=20?fmt(qtile(fv,.05),'FPS'):'collecting…');set('fpsP1',fv.length>=50?fmt(qtile(fv,.01),'FPS'):'collecting…');set('fpsP01',fv.length>=500?fmt(qtile(fv,.001),'FPS'):'collecting…');set('fpsRange',`${fmt(Math.min(...fv),'')} / ${fmt(Math.max(...fv),' FPS')}`)}else['fpsAvg','fpsP5','fpsP1','fpsP01','fpsRange'].forEach(id=>set(id,'—'));if(tv.length){set('ftP95',tv.length>=20?fmt(qtile(tv,.95),'ms'):'collecting…');set('ftP99',tv.length>=50?fmt(qtile(tv,.99),'ms'):'collecting…');set('ftMax',fmt(Math.max(...tv),'ms'))}else['ftP95','ftP99','ftMax'].forEach(id=>set(id,'—'))}
+function updateStatus(){if(!S.latest?.Ok){$('status').className='badge offline';$('status').textContent='NO DATA';return}const age=sourceAgeMs();let cls='live',txt=S.paused?'PAUSED':'LIVE';if(age!==null&&age>Math.max(3000,(S.latest.PollingPeriodMs||1000)*3)){cls='stale';txt='SOURCE STALE'}$('status').className='badge '+cls;$('status').textContent=txt;$('age').textContent=S.lastFetchAt?`browser ${Math.round(Date.now()-S.lastFetchAt)} ms ago`:'—';$('sourcePoll').textContent=S.latest.PollingPeriodMs?`${S.latest.PollingPeriodMs} ms`:'—';$('sourceUpdate').textContent=age===null?'—':age<1500?'now':`${(age/1000).toFixed(1)} s ago`;if(age!==null&&age>3000)$('sourceUpdate').style.color='var(--warn)';else $('sourceUpdate').style.color=''}
+function updateDynamic(){if(!S.latest?.Ok)return;updateOverview();updatePins();updateFps();updateSensorCells();updateStatus();$('sampleCount').textContent=S.samples}
 
- if(fv.length){
-   const av=fv.reduce((a,b)=>a+b,0)/fv.length;
-   set('fpsavg',nice(av,'FPS'));
-   set('fpsp1',fv.length>=20?nice(qtile(fv,.01),'FPS'):'collecting…');
-   set('fpsp01',fv.length>=100?nice(qtile(fv,.001),'FPS'):'collecting…');
-   set('fpsrange',`${nice(Math.min(...fv),'')} / ${nice(Math.max(...fv),' FPS')}`);
- }else{
-   ['fpsavg','fpsp1','fpsp01','fpsrange'].forEach(id=>set(id,'—'));
- }
- if(tv.length){
-   set('ftp99',tv.length>=20?nice(qtile(tv,.99),'ms'):'collecting…');
-   set('ftmax',nice(Math.max(...tv),'ms'));
- }else{
-   set('ftp99','—');set('ftmax','—');
- }
-}
+async function fetchOnce(){if(S.paused||S.inFlight)return;S.inFlight=true;try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),4000);const res=await fetch(`/api/sensors?_=${Date.now()}`,{cache:'no-store',signal:ctl.signal});clearTimeout(to);if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();S.latest=data;S.lastFetchAt=Date.now();if(!data.Ok){$('error').innerHTML=`<div class="err">${esc(data.Error||'HWiNFO data unavailable')}</div>`;updateStatus();return}$('error').innerHTML='';sample();renderGroupsStructure(false);updateDynamic();$('meta').textContent=`${data.Readings.length} live readings • Shared Memory v${data.Version}.${data.Revision}`;}catch(e){$('error').innerHTML=`<div class="err">Dashboard polling error: ${esc(e.message)}. Local server may still be running.</div>`;$('status').className='badge offline';$('status').textContent='OFFLINE'}finally{S.inFlight=false}}
+function schedulePoll(){clearTimeout(S.pollTimer);const delay=Number($('clientPoll').value)||500;S.pollTimer=setTimeout(async()=>{await fetchOnce();schedulePoll()},delay)}
 
-function readingByKey(k){return latest?.Readings?.find(r=>keyOf(r)===k)||null}
+function pinEssentials(){if(!S.latest?.Ok)return;const patterns=[/presentmon.*framerate presented.*avg/i,/presentmon.*frame time/i,/gpu core load/i,/^gpu.*temperature/i,/^gpu.*power/i,/gpu.*clock/i,/gpu memory.*allocated/i,/gpu memory usage/i,/total cpu usage/i,/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu package power/i,/core effective clocks.*avg/i,/physical memory load/i];for(const re of patterns){const r=S.latest.Readings.find(x=>re.test(`${x.Sensor||''} ${x.Label||''}`));if(r&&!S.pins.includes(keyOf(r)))S.pins.push(keyOf(r))}save();syncPinsStructure();syncGroupStars();updateDynamic();$('dropzone').classList.add('flash');setTimeout(()=>$('dropzone').classList.remove('flash'),450)}
+function collapseAll(collapse){document.querySelectorAll('.group').forEach(g=>{const name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');body.classList.toggle('hidden',collapse);chev.textContent=collapse?'▸':'▾';collapse?S.collapsed.add(name):S.collapsed.delete(name)})}
+function applyAllGraphs(on){for(const k of S.pins){ensureOpt(k).graph=on}save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
+function applyAllMode(){const mode=$('globalMode').value;for(const k of S.pins)ensureOpt(k).mode=mode;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
+function resetSession(){if(!confirm('Reset local session history, graphs, session min/max/average and sampled FPS percentiles? HWiNFO built-in statistics are left untouched.'))return;S.histories=new Map();S.samples=0;S.sessionStart=Date.now();$('sampleCount').textContent='0';updateDynamic()}
+function clearPins(){if(!S.pins.length)return;if(!confirm('Remove all pinned cards?'))return;S.pins=[];save();syncPinsStructure();syncGroupStars()}
+function exportCsv(){const keys=[...new Set([...S.pins,S.fpsKey,S.ftKey].filter(Boolean))];const rows=['timestamp,sensor,label,value,unit'];for(const k of keys){const r=reading(k);if(!r)continue;for(const p of S.histories.get(k)||[]){const q=s=>`"${String(s??'').replaceAll('"','""')}"`;rows.push([new Date(p.t).toISOString(),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','))}}const blob=new Blob([rows.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`hwinfo-performance-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
-function renderPins(){
- const host=document.getElementById('pins');
- if(!latest?.Ok){host.innerHTML='';return}
- const active=pins.map(k=>[k,readingByKey(k)]).filter(x=>x[1]);
- if(!active.length){
-   host.innerHTML=`<div class="empty-pins">Nothing pinned yet. Click ★ next to any sensor below, or use <b>Pin essentials</b>.</div>`;
-   return;
- }
- host.className='pin-grid';
- host.innerHTML=active.map(([k,r])=>{
-   const st=stats(histories.get(k)||[]);
-   const opt=pinOpts[k]||{mode:'all',graph:true};
-   let primary=r.Value;
-   if(opt.mode==='min')primary=st.min;
-   if(opt.mode==='max')primary=st.max;
-   if(opt.mode==='avg')primary=st.avg;
-   const showStats=opt.mode==='all';
-   return `<article class="pin-card">
-    <div class="pin-head">
-      <div class="pin-title"><div class="label">${esc(r.Label)}</div><div class="sensor">${esc(r.Sensor)}</div></div>
-      <div class="pin-actions"><button class="iconbtn" onclick="unpin('${k}')">Unpin</button></div>
-    </div>
-    <div class="pin-main">
-      <div>
-       <div class="big-value">${esc(nice(primary,r.Unit))}</div>
-       <div class="pin-mode">${opt.mode==='current'?'Current':opt.mode==='min'?'Session minimum':opt.mode==='max'?'Session maximum':opt.mode==='avg'?'Session average':'Current'}</div>
-      </div>
-    </div>
-    <div class="stats4 ${showStats?'':'hidden'}">
-      <div class="mini"><div class="n">Current</div><div class="v">${esc(nice(r.Value,r.Unit))}</div></div>
-      <div class="mini"><div class="n">Min</div><div class="v">${esc(nice(st.min,r.Unit))}</div></div>
-      <div class="mini"><div class="n">Average</div><div class="v">${esc(nice(st.avg,r.Unit))}</div></div>
-      <div class="mini"><div class="n">Max</div><div class="v">${esc(nice(st.max,r.Unit))}</div></div>
-    </div>
-    <div class="chart-wrap ${opt.graph===false?'hidden':''}">
-      <canvas data-chart="${k}"></canvas><div class="chart-meta">${st.count} samples</div>
-    </div>
-    <div class="card-controls">
-      <select onchange="setMode('${k}',this.value)">
-       <option value="all" ${opt.mode==='all'?'selected':''}>All values</option>
-       <option value="current" ${opt.mode==='current'?'selected':''}>Current</option>
-       <option value="min" ${opt.mode==='min'?'selected':''}>Session min</option>
-       <option value="avg" ${opt.mode==='avg'?'selected':''}>Session average</option>
-       <option value="max" ${opt.mode==='max'?'selected':''}>Session max</option>
-      </select>
-      <label><input type="checkbox" ${opt.graph===false?'':'checked'} onchange="setGraph('${k}',this.checked)"> graph</label>
-    </div>
-   </article>`;
- }).join('');
- requestAnimationFrame(()=>{
-   document.querySelectorAll('canvas[data-chart]').forEach(c=>{
-     const k=c.dataset.chart,r=readingByKey(k); if(r)drawChart(c,histories.get(k)||[],r.Unit);
-   });
- });
-}
+function bindGlobalDnD(){const dz=$('dropzone');for(const el of [dz,$('pinHost')]){el.ondragover=e=>{e.preventDefault();dz.classList.add('dragover');e.dataTransfer.dropEffect=S.pins.includes(S.draggingKey)?'move':'copy'};el.ondragleave=e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('dragover')};el.ondrop=e=>{e.preventDefault();dz.classList.remove('dragover');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k)return;S.pins.includes(k)?reorder(k,null):pin(k)}}}
 
-function renderGroups(){
- if(!latest?.Ok)return;
- const q=document.getElementById('q').value.trim().toLowerCase();
- const grouped=new Map();
- latest.Readings.forEach(r=>{
-   if(q&&!textOf(r).includes(q))return;
-   const g=r.Sensor||`Sensor ${r.SensorIndex}`;
-   if(!grouped.has(g))grouped.set(g,[]);
-   grouped.get(g).push(r);
- });
- let html='';
- for(const [g,rows] of grouped){
-  const closed=collapsed.has(g);
-  html+=`<section class="group" data-group="${esc(g)}">
-   <div class="group-head" onclick="toggleGroup(this)">
-    <div class="group-title">${esc(g)}</div><div class="group-count">${rows.length} readings ${closed?'▸':'▾'}</div>
-   </div>
-   <div class="${closed?'hidden':''}">
-    <table><thead><tr><th>Pin</th><th>Reading</th><th>Current</th><th>HWiNFO min</th><th>HWiNFO max</th><th>HWiNFO avg</th></tr></thead><tbody>
-    ${rows.map(r=>{
-      const k=keyOf(r),on=pins.includes(k);
-      return `<tr>
-       <td><button class="star ${on?'on':''}" title="${on?'Unpin':'Pin'}" onclick="event.stopPropagation();togglePin('${k}')">${on?'★':'☆'}</button></td>
-       <td class="sensor-label">${esc(r.Label)}</td>
-       <td>${esc(nice(r.Value,r.Unit))}</td><td>${esc(nice(r.Min,r.Unit))}</td>
-       <td>${esc(nice(r.Max,r.Unit))}</td><td>${esc(nice(r.Avg,r.Unit))}</td>
-      </tr>`;
-    }).join('')}
-    </tbody></table>
-   </div>
-  </section>`;
- }
- document.getElementById('groups').innerHTML=html||`<div class="empty-pins">No sensors match your search.</div>`;
-}
-
-function render(){
- if(!latest)return;
- const err=document.getElementById('error');
- if(!latest.Ok){
-   err.innerHTML=`<div class="err">${esc(latest.Error||'HWiNFO data unavailable')}</div>`;
-   document.getElementById('status').className='badge offline';
-   document.getElementById('status').textContent='NO DATA';
-   return;
- }
- err.innerHTML='';
- document.getElementById('status').className='badge live';
- document.getElementById('status').textContent=paused?'PAUSED':'LIVE';
- document.getElementById('poll').textContent=latest.PollingPeriodMs?`${latest.PollingPeriodMs} ms`:'—';
- document.getElementById('meta').textContent=`${latest.Readings.length} live readings • Shared Memory v${latest.Version}.${latest.Revision}`;
- renderOverview();renderPins();renderFpsLab();renderGroups();
-}
-
-function sample(){
- if(!latest?.Ok||paused)return;
- globalSamples++;
- const now=Date.now();
- // Always collect FPS and frame time so session analysis works without pinning them.
- const fps=findReading([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]);
- const ft=findReading([/presentmon.*frame time/i,/frame time/i]);
- if(fps){fpsKey=keyOf(fps);addSample(fpsKey,fps.Value)}
- if(ft){frameTimeKey=keyOf(ft);addSample(frameTimeKey,ft.Value)}
- pins.forEach(k=>{
-   const r=readingByKey(k);
-   if(r && k!==fpsKey && k!==frameTimeKey)addSample(k,r.Value);
- });
- document.getElementById('samples').textContent=globalSamples;
-}
-
-async function update(){
- if(paused)return;
- try{
-   const r=await fetch('/api/sensors',{cache:'no-store'});
-   latest=await r.json();
-   sample();render();
- }catch(e){
-   document.getElementById('status').className='badge offline';
-   document.getElementById('status').textContent='OFFLINE';
-   document.getElementById('error').innerHTML=`<div class="err">${esc(e.message)}</div>`;
- }
-}
-
-window.togglePin=function(k){
- if(pins.includes(k))unpin(k);else{rememberPin(k);render()}
-};
-window.unpin=unpin; window.setMode=setMode; window.setGraph=setGraph;
-window.toggleGroup=function(el){
- const group=el.closest('.group'),g=group.dataset.group;
- if(collapsed.has(g))collapsed.delete(g);else collapsed.add(g);
- renderGroups();
-};
-
-function pinEssentials(){
- if(!latest?.Ok)return;
- const patterns=[
-  /presentmon.*framerate presented.*avg/i,/presentmon.*frame time/i,
-  /gpu core load/i,/^gpu.*temperature/i,/^gpu.*power/i,
-  /total cpu usage/i,/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu package power/i,
-  /physical memory load/i,/gpu memory.*allocated/i,/gpu memory usage/i
- ];
- patterns.forEach(re=>{
-   const r=latest.Readings.find(x=>re.test(`${x.Sensor||''} ${x.Label||''}`));
-   if(r)rememberPin(keyOf(r));
- });
- render();
-}
-
-function resetSession(){
- if(!confirm('Reset local session history, graphs, min/max/average and sampled FPS percentiles? HWiNFO itself is not reset.'))return;
- histories=new Map();globalSamples=0;sessionStart=Date.now();
- document.getElementById('samples').textContent='0';
- render();
-}
-
-function exportCsv(){
- if(!latest?.Ok)return;
- const keys=[...new Set([...pins, fpsKey, frameTimeKey].filter(Boolean))];
- let rows=['timestamp,sensor,label,value,unit'];
- keys.forEach(k=>{
-   const r=readingByKey(k); if(!r)return;
-   (histories.get(k)||[]).forEach(p=>{
-     const safe=s=>`"${String(s??'').replaceAll('"','""')}"`;
-     rows.push([new Date(p.t).toISOString(),safe(r.Sensor),safe(r.Label),p.v,safe(r.Unit)].join(','));
-   });
- });
- const blob=new Blob([rows.join('\n')],{type:'text/csv'});
- const a=document.createElement('a');a.href=URL.createObjectURL(blob);
- a.download=`hwinfo-session-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;a.click();
- setTimeout(()=>URL.revokeObjectURL(a.href),1000);
-}
-
-document.getElementById('q').addEventListener('input',renderGroups);
-document.getElementById('window').addEventListener('change',renderPins);
-document.getElementById('essentials').addEventListener('click',pinEssentials);
-document.getElementById('reset').addEventListener('click',resetSession);
-document.getElementById('export').addEventListener('click',exportCsv);
-document.getElementById('pause').addEventListener('click',()=>{
- paused=!paused;
- document.getElementById('pause').textContent=paused?'Resume':'Pause';
- if(!paused)update(); else render();
-});
-
-setInterval(()=>{
- const s=Math.floor((Date.now()-sessionStart)/1000),m=Math.floor(s/60),ss=s%60,h=Math.floor(m/60),mm=m%60;
- document.getElementById('elapsed').textContent=h?`${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-},1000);
-
-window.addEventListener('resize',()=>renderPins());
-update();timer=setInterval(update,1000);
+$('search').addEventListener('input',()=>renderGroupsStructure(true));
+$('window').addEventListener('change',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
+$('clientPoll').addEventListener('change',schedulePoll);
+$('essentials').onclick=pinEssentials;
+$('pause').onclick=()=>{S.paused=!S.paused;$('pause').textContent=S.paused?'Resume':'Pause';updateStatus();if(!S.paused){fetchOnce();schedulePoll()}};
+$('reset').onclick=resetSession;$('export').onclick=exportCsv;
+$('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
+$('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
+$('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
+bindGlobalDnD();
+setInterval(()=>{const s=Math.floor((Date.now()-S.sessionStart)/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;$('elapsed').textContent=h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;updateStatus()},500);
+window.addEventListener('resize',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
+fetchOnce();schedulePoll();
 </script>
 </body>
 </html>
@@ -837,7 +558,7 @@ catch {
 
 Write-Host ""
 Write-Host "====================================================" -ForegroundColor DarkGray
-Write-Host " HWiNFO PERFORMANCE LAB v3" -ForegroundColor Green
+Write-Host " HWiNFO PERFORMANCE LAB v4" -ForegroundColor Green
 Write-Host "====================================================" -ForegroundColor DarkGray
 Write-Host ""
 Write-Host "Local dashboard : http://localhost:$Port/  (127.0.0.1 + ::1)" -ForegroundColor Cyan
