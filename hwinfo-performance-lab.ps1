@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.5</title>
+<title>HWiNFO Performance Lab v6.6</title>
 <style>
 :root{
   color-scheme:dark;
@@ -649,6 +649,19 @@ select{
   font-size:12px !important;
 }
 
+
+/* v6.6 card-control visibility */
+.pin-actions [data-controls-toggle]{
+  min-width:30px;
+  font-size:15px;
+  line-height:1;
+  letter-spacing:.08em;
+}
+.pin-actions [data-controls-toggle][aria-pressed="true"]{
+  background:color-mix(in srgb,var(--accent) 12%,var(--panel));
+  border-color:color-mix(in srgb,var(--accent) 38%,var(--line));
+}
+
 </style>
 </head>
 <body>
@@ -701,6 +714,14 @@ select{
      <div class="segmented-actions">
       <button id="graphsOn" data-menu-action>Show all</button>
       <button id="graphsOff" data-menu-action>Hide all</button>
+     </div>
+    </div>
+
+    <div class="menu-section">
+     <div class="menu-section-title">Card controls</div>
+     <div class="segmented-actions">
+      <button id="controlsOn" data-menu-action>Show all</button>
+      <button id="controlsOff" data-menu-action>Hide all</button>
      </div>
     </div>
 
@@ -1112,7 +1133,12 @@ function resolveDescriptor(d){
  return byOriginal||null;
 }
 function reading(k){return S.latest?.Readings?.find(r=>keyOf(r)===k)||null}
-function ensureOpt(k){const o=S.opts[k]||(S.opts[k]={mode:'current',graph:true,smooth:false});if(o.mode==='all')o.mode='current';return o}
+function ensureOpt(k){
+ const o=S.opts[k]||(S.opts[k]={mode:'current',graph:true,smooth:false,controlsVisible:true});
+ if(o.mode==='all')o.mode='current';
+ if(o.controlsVisible===undefined)o.controlsVisible=true;
+ return o
+}
 
 function applyTheme(pref){
  S.themePref=pref||'system';$('theme').value=S.themePref;
@@ -1336,13 +1362,26 @@ function reorder(k,before){
 function setMode(k,v){ensureOpt(k).mode=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
 function setGraph(k,v){ensureOpt(k).graph=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
 function setSmooth(k,v){ensureOpt(k).smooth=v;save();drawOneCard(document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`),k)}
-window.__unpin=unpin;window.__setMode=setMode;window.__setGraph=setGraph;window.__setSmooth=setSmooth;
+function toggleControls(k){
+ const o=ensureOpt(k);o.controlsVisible=!o.controlsVisible;save();
+ const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);
+ if(c)applyCardPresentation(c,k);
+}
+function applyAllControls(show){
+ for(const k of S.pins)ensureOpt(k).controlsVisible=show;
+ save();
+ document.querySelectorAll('.pin-card').forEach(c=>applyCardPresentation(c,c.dataset.key));
+}
+window.__unpin=unpin;window.__setMode=setMode;window.__setGraph=setGraph;window.__setSmooth=setSmooth;window.__toggleControls=toggleControls;
 
 function cardHtml(k,r){
  const o=ensureOpt(k),cat=classify(r);
  return `<article class="pin-card" data-key="${k}" draggable="true">
   <div class="pin-head"><div class="pin-left"><div class="draghandle" title="Drag to reorder">⠿</div><div class="pin-title"><div class="l">${esc(r.Label)}</div><div class="g">${esc(r.Sensor)}</div><span class="catbadge">${cat}</span></div></div>
-   <div class="pin-actions"><button class="iconbtn" onclick="__unpin('${k}')">Unpin</button></div></div>
+   <div class="pin-actions">
+    <button class="iconbtn" data-controls-toggle title="Show / hide card controls" onclick="__toggleControls('${k}')">⋯</button>
+    <button class="iconbtn" onclick="__unpin('${k}')">Unpin</button>
+   </div></div>
   <div class="pin-primary"><div><div class="big" data-pin-primary>—</div><div class="smallmode" data-pin-mode>Current</div></div></div>
   <div class="statgrid">
    <div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur">—</div></div>
@@ -1351,7 +1390,7 @@ function cardHtml(k,r){
    <div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max">—</div></div>
   </div>
   <div class="chartbox"><canvas></canvas><div class="chart-legend" data-chartlegend>0 samples</div></div>
-  <div class="pin-foot">
+  <div class="pin-foot" data-card-controls>
    <span class="label-mini">Large value</span>
    <select data-mode onchange="__setMode('${k}',this.value)"><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session avg</option><option value="max">Session max</option></select>
    <label class="check"><input type="checkbox" data-graph onchange="__setGraph('${k}',this.checked)"> graph</label>
@@ -1360,9 +1399,18 @@ function cardHtml(k,r){
  </article>`;
 }
 function applyCardPresentation(card,k){
- const o=ensureOpt(k);card.querySelector('[data-mode]').value=o.mode||'current';
- card.querySelector('[data-graph]').checked=o.graph!==false;card.querySelector('[data-smooth]').checked=!!o.smooth;
+ const o=ensureOpt(k);
+ card.querySelector('[data-mode]').value=o.mode||'current';
+ card.querySelector('[data-graph]').checked=o.graph!==false;
+ card.querySelector('[data-smooth]').checked=!!o.smooth;
  card.querySelector('.chartbox').classList.toggle('hidden',o.graph===false);
+ const controls=card.querySelector('[data-card-controls]');
+ if(controls)controls.classList.toggle('hidden',o.controlsVisible===false);
+ const toggle=card.querySelector('[data-controls-toggle]');
+ if(toggle){
+   toggle.title=o.controlsVisible===false?'Show card controls':'Hide card controls';
+   toggle.setAttribute('aria-pressed',o.controlsVisible===false?'true':'false');
+ }
  card.querySelector('[data-pin-mode]').textContent=o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current';
 }
 function bindCardDnD(card){
@@ -1662,7 +1710,7 @@ function applyImportedSetup(cfg){
  if(!cfg||cfg.schema!=='hwinfo-performance-lab-setup'){toast('This is not a Performance Lab setup file');return}
  if(!S.latest?.Ok){S.pendingImport=cfg;toast('Setup loaded; waiting for HWiNFO data');return}
  const pins=[],opts={};let unresolved=0;
- for(const item of cfg.pins||[]){const r=resolveDescriptor(item.reading);if(!r){unresolved++;continue}const k=keyOf(r);pins.push(k);opts[k]={mode:item.options?.mode==='all'?'current':(item.options?.mode||'current'),graph:item.options?.graph!==false,smooth:!!item.options?.smooth}}
+ for(const item of cfg.pins||[]){const r=resolveDescriptor(item.reading);if(!r){unresolved++;continue}const k=keyOf(r);pins.push(k);opts[k]={mode:item.options?.mode==='all'?'current':(item.options?.mode||'current'),graph:item.options?.graph!==false,smooth:!!item.options?.smooth,controlsVisible:item.options?.controlsVisible!==false}}
  S.pins=pins;S.opts=opts;
  if(cfg.ui?.graphWindow)$('window').value=String(cfg.ui.graphWindow);
  if(cfg.ui?.clientPoll)$('clientPoll').value=String(cfg.ui.clientPoll);
@@ -1742,6 +1790,7 @@ $('pause').onclick=()=>{
 $('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
 $('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
 $('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
+$('controlsOn').onclick=()=>applyAllControls(true);$('controlsOff').onclick=()=>applyAllControls(false);
 $('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
 $('exportSetup').onclick=exportSetup;$('importSetup').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files?.[0])importSetupFile(e.target.files[0])};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.category=b.dataset.filter;setFilterButtons();S.topology='';renderGroupsStructure(true)});
