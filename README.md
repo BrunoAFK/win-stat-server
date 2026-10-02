@@ -1,54 +1,43 @@
-HWiNFO PERFORMANCE LAB v6.9
-===========================
+HWiNFO PERFORMANCE LAB v6.9.1
+=============================
 
-TOP BAR
--------
-Lap navigation is now a single compact compound control:
-  [ Lap 1 · Current  v | + Lap ]
+LIVE PINNED-GRID DRAG & DROP
+----------------------------
 
-The separate "View" label is gone.
+The permanent "Drop a sensor here to pin it" strip is gone.
 
-RESET LAPS
-----------
-Session -> Reset laps
+REORDERING EXISTING CARDS
+-------------------------
+Drag an existing pinned card.
 
-Deletes the lap markers and starts a fresh Lap 1 now.
+While your mouse moves through the grid:
+- the dragged card moves to the proposed position immediately
+- surrounding cards reflow around it
+- the reflow is animated
+- you see the actual final arrangement before releasing the mouse
 
-It does NOT delete full-session telemetry, so the previous data remains visible
-under "All session".
+Drop commits the order.
+Canceling the drag restores the previous order.
 
-Session -> Reset entire session remains the destructive option that deletes:
-- pinned telemetry history
-- laps
-- FPS analysis
-- local session timer/history
+ADDING A NEW SENSOR
+-------------------
+Drag any row from "All HWiNFO sensors" into the pinned grid.
 
-PINNED TELEMETRY
-----------------
-Pinned telemetry now has:
-  Hide pinned / Show pinned
+A temporary card-sized placeholder appears only while dragging:
+  Pin here
 
-The choice persists and is included in Export setup / Import setup.
+The placeholder moves through the grid under the cursor and pushes the existing
+cards into their prospective positions. Drop inserts the new sensor exactly
+there.
 
-FPS ANALYSIS POSITION
----------------------
-FPS session analysis now has:
-  Move up / Move down
+There is no permanent drop-target row consuming dashboard space.
 
-This moves the entire FPS analysis section above or below Pinned telemetry.
-The position persists and is exported/imported with the dashboard setup.
+EMPTY DASHBOARD
+---------------
+An empty pinned grid simply shows:
+  No pinned telemetry.
 
-COMPACT FPS SETTINGS
---------------------
-FPS source and Frame-time source no longer consume a permanent full-width row.
+It still accepts dragged sensor rows.
 
-They are inside:
-  Analysis settings v
-
-The compact FPS header now contains:
-- analysis elapsed time
-- Analysis settings dropdown
-- Reset analysis
-- Move up/down
-
-All v6.8.1 lap/session behavior and earlier functionality are retained.
+All v6.9 features remain intact, including stable dropdowns during telemetry
+refresh.

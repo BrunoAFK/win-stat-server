@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.9</title>
+<title>HWiNFO Performance Lab v6.9.1</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -982,6 +982,49 @@ select{
   .top-lap-controls select{flex:1;max-width:none!important}
 }
 
+
+/* v6.9.1 pinned-grid live sorting */
+.dropzone{display:none!important}
+.pin-empty{
+  grid-column:1/-1;
+  min-height:74px;
+  display:grid;
+  place-items:center;
+}
+.pin-placeholder{
+  min-height:150px;
+  border:1px dashed color-mix(in srgb,var(--accent) 62%,var(--line));
+  border-radius:14px;
+  background:color-mix(in srgb,var(--accent) 7%,var(--panel));
+  display:grid;
+  place-items:center;
+  color:var(--muted);
+  font-weight:650;
+  pointer-events:none;
+  animation:pinPlaceholderIn .12s ease-out;
+}
+.pin-placeholder span{
+  padding:7px 10px;
+  border-radius:999px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+}
+@keyframes pinPlaceholderIn{
+  from{opacity:.35;transform:scale(.985)}
+  to{opacity:1;transform:scale(1)}
+}
+#pinHost.pin-drag-active{
+  border-radius:14px;
+  background:color-mix(in srgb,var(--accent) 2.5%,transparent);
+}
+.pin-card.dragging{
+  opacity:.34;
+  border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+}
+@media (prefers-reduced-motion:reduce){
+  .pin-placeholder{animation:none}
+}
+
 </style>
 </head>
 <body>
@@ -1252,13 +1295,12 @@ select{
 
 <section class="dashboard-section" id="pinnedSection">
  <div class="sectionhead sectionhead-actions">
-  <div><h2>Pinned telemetry</h2><p>Drag cards to reorder or drag a sensor here to pin it.</p></div>
+  <div><h2>Pinned telemetry</h2><p>Drag cards to reorder. Sensors from the table can be dragged directly into the grid.</p></div>
   <div class="section-actions">
    <button type="button" class="section-action" id="togglePinnedSection">Hide pinned</button>
   </div>
  </div>
  <div id="pinnedBody">
-  <div class="dropzone" id="dropzone">Drop a sensor here to pin it</div>
   <div class="pingrid" id="pinHost"></div>
  </div>
 </section>
@@ -1489,7 +1531,11 @@ const S={
  viewScope:'current',
  fpsAnalysis:{fps:[],ft:[],startedAt:Date.now()},
  pinnedVisible:localStorage.getItem('hpl-v69-pinned-visible')!=='0',
- fpsPosition:localStorage.getItem('hpl-v69-fps-position')==='above'?'above':'below'
+ fpsPosition:localStorage.getItem('hpl-v69-fps-position')==='above'?'above':'below',
+ dragType:null,
+ dragOriginalPins:null,
+ dragDropped:false,
+ pinPlaceholder:null
 };
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
@@ -2046,7 +2092,13 @@ function rolling(arr,sec){
  return out;
 }
 
-function pin(k){if(!reading(k)||S.pins.includes(k))return;S.pins.push(k);ensureOpt(k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
+function pin(k){pinAt(k,null)}
+function pinAt(k,before){
+ if(!reading(k)||S.pins.includes(k))return;
+ const a=[...S.pins],i=before?a.indexOf(before):-1;
+ if(i<0)a.push(k);else a.splice(i,0,k);
+ S.pins=a;ensureOpt(k);save();syncPinsStructure();syncGroupStars();updateDynamic();
+}
 function unpin(k){S.pins=S.pins.filter(x=>x!==k);save();syncPinsStructure();syncGroupStars()}
 function reorder(k,before){
  const a=S.pins.filter(x=>x!==k);const i=before?a.indexOf(before):-1;if(i<0)a.push(k);else a.splice(i,0,k);S.pins=a;save();syncPinsStructure();updateDynamic()
@@ -2106,16 +2158,31 @@ function applyCardPresentation(card,k){
  card.querySelector('[data-pin-mode]').textContent=o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current';
 }
 function bindCardDnD(card){
- card.ondragstart=e=>{S.draggingKey=card.dataset.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',S.draggingKey)};
- card.ondragend=()=>{S.draggingKey=null;card.classList.remove('dragging');document.querySelectorAll('.pin-card').forEach(x=>x.classList.remove('drag-target'))};
- card.ondragover=e=>{e.preventDefault();if(S.draggingKey&&S.draggingKey!==card.dataset.key)card.classList.add('drag-target')};
- card.ondragleave=()=>card.classList.remove('drag-target');
- card.ondrop=e=>{e.preventDefault();card.classList.remove('drag-target');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(k&&S.pins.includes(k))reorder(k,card.dataset.key);else if(k)pin(k)}
+ card.ondragstart=e=>{
+   S.draggingKey=card.dataset.key;
+   S.dragType='pin';
+   S.dragOriginalPins=[...S.pins];
+   S.dragDropped=false;
+   card.classList.add('dragging');
+   e.dataTransfer.effectAllowed='move';
+   e.dataTransfer.setData('text/plain',S.draggingKey);
+ };
+ card.ondragend=()=>{
+   if(!S.dragDropped&&S.dragOriginalPins){
+     S.pins=[...S.dragOriginalPins];
+     save();
+     syncPinsStructure();
+   }
+   cleanupPinDrag();
+ };
 }
 function syncPinsStructure(){
  const host=$('pinHost'),valid=S.pins.filter(k=>reading(k));
- if(!valid.length){host.className='';host.innerHTML='<div class="empty">Nothing pinned. Use an essential preset, click ★, or drag a sensor row here.</div>';return}
  host.className='pingrid';
+ if(!valid.length){
+   if(!host.querySelector(':scope > .pin-empty'))host.innerHTML='<div class="empty pin-empty">No pinned telemetry.</div>';
+   return;
+ }
  host.querySelectorAll(':scope > .empty').forEach(x=>x.remove());
  const existing=new Map([...host.querySelectorAll('.pin-card')].map(c=>[c.dataset.key,c]));
  let cursor=host.firstElementChild;
@@ -2259,7 +2326,20 @@ function renderGroupsStructure(force=false){
  $('groups').innerHTML=html||'<div class="empty">No readings match this filter.</div>';
  document.querySelectorAll('.group-head').forEach(h=>h.onclick=()=>{const g=h.closest('.group'),name=g.dataset.group,body=g.querySelector('.group-body'),closed=body.classList.toggle('hidden');closed?S.collapsed.add(name):S.collapsed.delete(name);g.querySelector('.chev').textContent=closed?'▸':'▾'});
  document.querySelectorAll('[data-star]').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.star;S.pins.includes(k)?unpin(k):pin(k)});
- document.querySelectorAll('.sensor-row').forEach(row=>{row.ondragstart=e=>{S.draggingKey=row.dataset.key;row.classList.add('dragging');e.dataTransfer.setData('text/plain',S.draggingKey);e.dataTransfer.effectAllowed='copy'};row.ondragend=()=>{S.draggingKey=null;row.classList.remove('dragging')}});
+ document.querySelectorAll('.sensor-row').forEach(row=>{
+   row.ondragstart=e=>{
+     S.draggingKey=row.dataset.key;
+     S.dragType='sensor';
+     S.dragDropped=false;
+     row.classList.add('dragging');
+     e.dataTransfer.setData('text/plain',S.draggingKey);
+     e.dataTransfer.effectAllowed='copy';
+   };
+   row.ondragend=()=>{
+     row.classList.remove('dragging');
+     cleanupPinDrag();
+   };
+ });
 }
 function updateSensorCells(){
  if(!S.latest?.Ok)return;
@@ -2330,7 +2410,8 @@ const PRESETS={
 function applyPreset(which){
  if(!S.latest?.Ok)return;const cats=which==='all'?['gaming','gpu','cpu','memory']:[which];
  for(const cat of cats){for(const test of PRESETS[cat]||[]){const r=S.latest.Readings.find(test);if(r&&!S.pins.includes(keyOf(r)))S.pins.push(keyOf(r))}}
- save();syncPinsStructure();syncGroupStars();updateDynamic();$('dropzone').classList.add('flash');setTimeout(()=>$('dropzone').classList.remove('flash'),450)
+ save();syncPinsStructure();syncGroupStars();updateDynamic();
+ const host=$('pinHost');host?.classList.add('flash');setTimeout(()=>host?.classList.remove('flash'),450)
 }
 
 function collapseAll(collapse){document.querySelectorAll('.group').forEach(g=>{const name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');body.classList.toggle('hidden',collapse);chev.textContent=collapse?'▸':'▾';collapse?S.collapsed.add(name):S.collapsed.delete(name)})}
@@ -2393,8 +2474,148 @@ function applyImportedSetup(cfg){
 }
 async function importSetupFile(file){try{const cfg=JSON.parse(await file.text());applyImportedSetup(cfg)}catch(e){toast('Could not import setup: '+e.message)}finally{$('importFile').value=''}}
 
+function getPinPlaceholder(){
+ if(S.pinPlaceholder&&S.pinPlaceholder.isConnected)return S.pinPlaceholder;
+ const ph=document.createElement('div');
+ ph.className='pin-placeholder';
+ ph.innerHTML='<span>Pin here</span>';
+ S.pinPlaceholder=ph;
+ return ph;
+}
+
+function animatePinReflow(host,mutate,exclude=null){
+ const cards=[...host.querySelectorAll(':scope > .pin-card')].filter(x=>x!==exclude);
+ const before=new Map(cards.map(x=>[x,x.getBoundingClientRect()]));
+ mutate();
+ const after=[...host.querySelectorAll(':scope > .pin-card')].filter(x=>x!==exclude);
+ for(const el of after){
+   const a=before.get(el);if(!a)continue;
+   const b=el.getBoundingClientRect(),dx=a.left-b.left,dy=a.top-b.top;
+   if(Math.abs(dx)<1&&Math.abs(dy)<1)continue;
+   try{
+     el.getAnimations().forEach(anim=>anim.cancel());
+     el.animate(
+       [{transform:`translate(${dx}px,${dy}px)`},{transform:'translate(0,0)'}],
+       {duration:145,easing:'cubic-bezier(.2,.75,.25,1)'}
+     );
+   }catch{}
+ }
+}
+
+function previewInsertion(host,node,target,e){
+ if(!node||!host)return;
+ let ref=null;
+ if(target&&target!==node){
+   const rect=target.getBoundingClientRect();
+   const multiColumn=rect.width<host.getBoundingClientRect().width*.72;
+   const after=multiColumn
+     ? e.clientX>rect.left+rect.width/2
+     : e.clientY>rect.top+rect.height/2;
+   ref=after?target.nextElementSibling:target;
+   if(ref===node)ref=node.nextElementSibling;
+ }
+
+ if(ref===node||node.nextElementSibling===ref)return;
+ animatePinReflow(host,()=>{
+   if(ref)host.insertBefore(node,ref);
+   else host.appendChild(node);
+ },S.dragType==='pin'?node:null);
+}
+
+function pinnedOrderFromDom(){
+ return [...$('pinHost').querySelectorAll(':scope > .pin-card')]
+   .map(c=>c.dataset.key).filter(Boolean);
+}
+
+function cleanupPinDrag(){
+ const host=$('pinHost');
+ host?.classList.remove('pin-drag-active');
+ document.querySelectorAll('.pin-card').forEach(x=>x.classList.remove('dragging','drag-target'));
+ if(S.pinPlaceholder?.isConnected)S.pinPlaceholder.remove();
+ S.pinPlaceholder=null;
+ const empty=host?.querySelector(':scope > .pin-empty');
+ if(empty)empty.classList.remove('hidden');
+ S.draggingKey=null;
+ S.dragType=null;
+ S.dragOriginalPins=null;
+ S.dragDropped=false;
+}
+
 function bindGlobalDnD(){
- const dz=$('dropzone');for(const el of [dz,$('pinHost')]){el.ondragover=e=>{e.preventDefault();dz.classList.add('dragover');e.dataTransfer.dropEffect=S.pins.includes(S.draggingKey)?'move':'copy'};el.ondragleave=e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('dragover')};el.ondrop=e=>{e.preventDefault();dz.classList.remove('dragover');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k)return;S.pins.includes(k)?reorder(k,null):pin(k)}}}
+ const host=$('pinHost');
+ if(!host)return;
+
+ host.ondragenter=e=>{
+   if(!S.draggingKey)return;
+   e.preventDefault();
+   host.classList.add('pin-drag-active');
+ };
+
+ host.ondragover=e=>{
+   if(!S.draggingKey)return;
+   e.preventDefault();
+   e.dataTransfer.dropEffect=S.dragType==='pin'?'move':'copy';
+   host.classList.add('pin-drag-active');
+
+   const target=e.target.closest?.('.pin-card');
+
+   if(S.dragType==='pin'){
+     const dragged=host.querySelector(`:scope > .pin-card[data-key="${CSS.escape(S.draggingKey)}"]`);
+     if(dragged)previewInsertion(host,dragged,target,e);
+     return;
+   }
+
+   const empty=host.querySelector(':scope > .pin-empty');
+   if(empty)empty.classList.add('hidden');
+
+   const ph=getPinPlaceholder();
+   if(!ph.isConnected){
+     const sample=host.querySelector(':scope > .pin-card');
+     if(sample){
+       const r=sample.getBoundingClientRect();
+       ph.style.minHeight=`${Math.max(120,Math.round(r.height))}px`;
+     }
+     host.appendChild(ph);
+   }
+   previewInsertion(host,ph,target,e);
+ };
+
+ host.ondrop=e=>{
+   if(!S.draggingKey)return;
+   e.preventDefault();
+   e.stopPropagation();
+
+   const k=e.dataTransfer.getData('text/plain')||S.draggingKey;
+   if(!k)return;
+
+   if(S.dragType==='pin'&&S.pins.includes(k)){
+     const domOrder=pinnedOrderFromDom();
+     const hidden=S.pins.filter(x=>!domOrder.includes(x));
+     S.pins=[...domOrder,...hidden];
+     S.dragDropped=true;
+     save();
+     cleanupPinDrag();
+     syncPinsStructure();
+     updateDynamic();
+     return;
+   }
+
+   if(S.dragType==='sensor'&&!S.pins.includes(k)){
+     const ph=S.pinPlaceholder;
+     let before=null;
+     if(ph){
+       let next=ph.nextElementSibling;
+       while(next&&!next.classList.contains('pin-card'))next=next.nextElementSibling;
+       before=next?.dataset?.key||null;
+     }
+     S.dragDropped=true;
+     if(ph?.isConnected)ph.remove();
+     S.pinPlaceholder=null;
+     pinAt(k,before);
+     cleanupPinDrag();
+   }
+ };
+}
 
 function setFilterButtons(){document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===S.category))}
 function onTopologyChanged(){
