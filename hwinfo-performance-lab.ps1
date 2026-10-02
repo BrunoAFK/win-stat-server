@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.3</title>
+<title>HWiNFO Performance Lab v6.4</title>
 <style>
 :root{
   color-scheme:dark;
@@ -795,6 +795,7 @@ select{
      <label class="menu-field">
       <span><strong>Target FPS</strong><small>Used for FPS, frame-time and frame-budget health thresholds.</small></span>
       <select id="targetFps">
+       <option value="0">Off</option>
        <option value="30">30 FPS</option>
        <option value="60" selected>60 FPS</option>
        <option value="90">90 FPS</option>
@@ -844,20 +845,32 @@ select{
  <section class="cat-panel"><div class="cat-head"><strong>GPU</strong><span>graphics</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">Load</div><div class="v" id="ovGpu">—</div></div>
   <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovGt">—</div></div>
+  <div class="cat-metric"><div class="k">Hotspot</div><div class="v" id="ovGhot">—</div></div>
   <div class="cat-metric"><div class="k">Power</div><div class="v" id="ovGp">—</div></div>
-  <div class="cat-metric"><div class="k">Clock</div><div class="v" id="ovGc">—</div></div>
+  <div class="cat-metric"><div class="k">Core clock</div><div class="v" id="ovGc">—</div></div>
+  <div class="cat-metric"><div class="k">Memory clock</div><div class="v" id="ovGmc">—</div></div>
+  <div class="cat-metric"><div class="k">Fan</div><div class="v" id="ovGfan">—</div></div>
+  <div class="cat-metric"><div class="k">Throttle / limit</div><div class="v" id="ovGthrottle">—</div></div>
  </div></section>
  <section class="cat-panel"><div class="cat-head"><strong>CPU</strong><span>processor</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">Total usage</div><div class="v" id="ovCpu">—</div></div>
+  <div class="cat-metric"><div class="k">Max thread</div><div class="v" id="ovCpuMax">—</div></div>
   <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovCt">—</div></div>
   <div class="cat-metric"><div class="k">Package power</div><div class="v" id="ovCp">—</div></div>
   <div class="cat-metric"><div class="k">Effective clock</div><div class="v" id="ovCc">—</div></div>
+  <div class="cat-metric"><div class="k">PPT / limit</div><div class="v" id="ovCpuPpt">—</div></div>
+  <div class="cat-metric"><div class="k">Thermal throttle</div><div class="v" id="ovCpuThermal">—</div></div>
+  <div class="cat-metric"><div class="k">Power throttle</div><div class="v" id="ovCpuPowerLimit">—</div></div>
  </div></section>
  <section class="cat-panel"><div class="cat-head"><strong>Memory</strong><span>RAM / VRAM</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">RAM load</div><div class="v" id="ovRamLoad">—</div></div>
   <div class="cat-metric"><div class="k">RAM used</div><div class="v" id="ovRamUsed">—</div></div>
+  <div class="cat-metric"><div class="k">RAM available</div><div class="v" id="ovRamAvail">—</div></div>
+  <div class="cat-metric"><div class="k">Committed</div><div class="v" id="ovCommitted">—</div></div>
   <div class="cat-metric"><div class="k">VRAM used</div><div class="v" id="ovVram">—</div></div>
   <div class="cat-metric"><div class="k">VRAM load</div><div class="v" id="ovVramLoad">—</div></div>
+  <div class="cat-metric"><div class="k">Page file</div><div class="v" id="ovPageFile">—</div></div>
+  <div class="cat-metric"><div class="k">Memory errors</div><div class="v" id="ovMemErrors">—</div></div>
  </div></section>
 </div>
 
@@ -908,51 +921,48 @@ const fmt=(v,u,compact=false)=>{v=n(v);if(v===null)return '—';let d=compact?(M
 const qtile=(a,q)=>{const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!x.length)return null;if(x.length===1)return x[0];const p=(x.length-1)*q,l=Math.floor(p),h=Math.ceil(p);return x[l]+(x[h]-x[l])*(p-l)};
 const calc=a=>{const v=a.map(x=>x.v).filter(Number.isFinite);return v.length?{cur:v.at(-1),min:Math.min(...v),max:Math.max(...v),avg:v.reduce((x,y)=>x+y,0)/v.length,count:v.length}:{cur:null,min:null,max:null,avg:null,count:0}};
 
-function targetFrameMs(){return 1000/Math.max(1,Number(S.targetFps)||60)}
+function targetFrameMs(){const t=Number(S.targetFps);return Number.isFinite(t)&&t>0?1000/t:null}
 
 function healthRule(r,value){
  if(!S.healthColors)return null;
  value=n(value);if(value===null||!r)return null;
 
  const t=readingText(r),unit=String(r.Unit||'').trim().toLowerCase();
- const target=Math.max(1,Number(S.targetFps)||60),budget=1000/target;
+ const target=Number(S.targetFps);
+ const budget=Number.isFinite(target)&&target>0?1000/target:null;
 
- // Frame delivery: relative to the user's chosen target FPS.
- if(unit==='fps'||/\bframerate\b/.test(t)){
-   if(value<=0)return {level:'bad',reason:`No rendered FPS; target is ${target} FPS`};
-   if(value<target*.75)return {level:'bad',reason:`Below 75% of ${target} FPS target`};
-   if(value<target*.90)return {level:'warn',reason:`Below 90% of ${target} FPS target`};
-   return null;
- }
- if((unit==='ms'||unit==='milliseconds')&&/\bframe time\b|\bframetime\b/.test(t)){
-   if(value>budget*1.50)return {level:'bad',reason:`Frame time exceeds 150% of ${budget.toFixed(2)} ms target frame budget`};
-   if(value>budget*1.15)return {level:'warn',reason:`Frame time exceeds 115% of ${budget.toFixed(2)} ms target frame budget`};
-   return null;
+ // Frame-budget health is optional. Target FPS = Off disables this entire block.
+ if(budget!==null){
+   if(unit==='fps'||/\bframerate\b/.test(t)){
+     if(value<=0)return {level:'bad',reason:`No rendered FPS; target is ${target} FPS`};
+     if(value<target*.75)return {level:'bad',reason:`Below 75% of ${target} FPS target`};
+     if(value<target*.90)return {level:'warn',reason:`Below 90% of ${target} FPS target`};
+     return null;
+   }
+   if((unit==='ms'||unit==='milliseconds')&&/\bframe time\b|\bframetime\b/.test(t)){
+     if(value>budget*1.50)return {level:'bad',reason:`Frame time exceeds 150% of ${budget.toFixed(2)} ms target frame budget`};
+     if(value>budget*1.15)return {level:'warn',reason:`Frame time exceeds 115% of ${budget.toFixed(2)} ms target frame budget`};
+     return null;
+   }
+   if((unit==='ms'||unit==='milliseconds')&&/\bcpu busy\b|\bgpu busy\b/.test(t)){
+     if(value>budget*1.15)return {level:'bad',reason:`Busy time exceeds 115% of ${budget.toFixed(2)} ms frame budget`};
+     if(value>budget*.90)return {level:'warn',reason:`Busy time is using over 90% of ${budget.toFixed(2)} ms frame budget`};
+     return null;
+   }
+   if((unit==='ms'||unit==='milliseconds')&&/\bgpu latency\b|\brender latency\b|\bpresent latency\b/.test(t)){
+     if(value>budget*3)return {level:'bad',reason:`Latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
+     if(value>budget*2)return {level:'warn',reason:`Latency exceeds 2× the ${budget.toFixed(2)} ms frame budget`};
+     return null;
+   }
+   if((unit==='ms'||unit==='milliseconds')&&/\bdisplay latency\b|\bclick to photon\b/.test(t)){
+     if(value>budget*5)return {level:'bad',reason:`Display latency exceeds 5× the ${budget.toFixed(2)} ms frame budget`};
+     if(value>budget*3)return {level:'warn',reason:`Display latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
+     return null;
+   }
  }
 
- // PresentMon CPU/GPU busy: high busy time relative to the target frame budget
- // means that stage alone is consuming nearly/all of the available frame budget.
- if((unit==='ms'||unit==='milliseconds')&&/\bcpu busy\b|\bgpu busy\b/.test(t)){
-   if(value>budget*1.15)return {level:'bad',reason:`Busy time exceeds 115% of ${budget.toFixed(2)} ms frame budget`};
-   if(value>budget*.90)return {level:'warn',reason:`Busy time is using over 90% of ${budget.toFixed(2)} ms frame budget`};
-   return null;
- }
-
- // Wait times are diagnostically meaningful, but "high = unhealthy" is not
- // universally true (it can simply identify the opposite side of a bottleneck).
+ // Wait times are diagnostic, not inherently good/bad.
  if(/\bcpu wait\b|\bgpu wait\b/.test(t))return null;
-
- // Latency heuristics scale with the target frame budget.
- if((unit==='ms'||unit==='milliseconds')&&/\bgpu latency\b|\brender latency\b|\bpresent latency\b/.test(t)){
-   if(value>budget*3)return {level:'bad',reason:`Latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
-   if(value>budget*2)return {level:'warn',reason:`Latency exceeds 2× the ${budget.toFixed(2)} ms frame budget`};
-   return null;
- }
- if((unit==='ms'||unit==='milliseconds')&&/\bdisplay latency\b|\bclick to photon\b/.test(t)){
-   if(value>budget*5)return {level:'bad',reason:`Display latency exceeds 5× the ${budget.toFixed(2)} ms frame budget`};
-   if(value>budget*3)return {level:'warn',reason:`Display latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
-   return null;
- }
 
  // Temperature rules. These are deliberately generic troubleshooting thresholds,
  // not replacements for component-specific manufacturer limits.
@@ -1011,8 +1021,8 @@ function healthRule(r,value){
 
  // Throttling, thermal/power limit and hardware-error indicators.
  // Numeric boolean sensors exposed as 1/0 are common in HWiNFO.
- if(/thermal thrott|critical temperature|power limit exceeded|performance limit thermal|prochot/.test(t)){
-   if(value>0)return {level:'bad',reason:'A throttling / thermal limit indicator is active'};
+ if(/thermal thrott|critical temperature|power limit exceeded|performance limit thermal|performance limit power|power thrott|prochot/.test(t)){
+   if(value>0)return {level:'bad',reason:'A throttling / performance-limit indicator is active'};
  }
  if(/whea.*error|hardware error/.test(t)){
    if(value>0)return {level:'bad',reason:'Hardware error count is non-zero'};
@@ -1050,7 +1060,7 @@ const S={
  fpsPref:localStorage.getItem('hpl-v5-fps-source')||'',ftPref:localStorage.getItem('hpl-v5-ft-source')||'',
  themePref:localStorage.getItem('hpl-v5-theme')||'system',
  healthColors:localStorage.getItem('hpl-v62-health-colors')!=='0',
- targetFps:Number(localStorage.getItem('hpl-v62-target-fps')||60),
+ targetFps:(()=>{const v=localStorage.getItem('hpl-v62-target-fps');return v===null?60:Number(v)})(),
  pins:JSON.parse(localStorage.getItem('hpl-v5-pins')||localStorage.getItem('hpl-v4-pins')||'[]'),
  opts:JSON.parse(localStorage.getItem('hpl-v5-opts')||localStorage.getItem('hpl-v4-opts')||'{}'),
  pendingImport:null
@@ -1137,27 +1147,123 @@ function findRegex(arr){
  for(const re of arr){const r=(S.latest?.Readings||[]).find(x=>re.test(readingText(x)));if(r)return r}return null
 }
 function overviewReading(kind){
- const map={
-  gpu:[/\bgpu core load\b/,/\bgpu utilization\b/],
-  gt:[/\bgpu temperature\b/,/\bgpu hot spot\b/],
-  gp:[/\bgpu power\b/,/\btotal graphics power\b/],
-  gc:[/\bgpu clock\b/,/\bgpu core clock\b/],
-  cpubusy:[/\bcpu busy\b/],
-  cpuwait:[/\bcpu wait\b/],
-  gbusy:[/\bgpu busy\b/],
-  gpuwait:[/\bgpu wait\b/],
-  gpulatency:[/\bgpu latency\b/],
-  displaylatency:[/\bdisplay latency\b/,/\brender present latency\b/,/\brender latency\b/,/\bpresent latency\b/],
-  cpu:[/\btotal cpu usage\b/,/\bcpu total\b/],
-  ct:[/\bcpu tctl tdie\b/,/\bcpu package temperature\b/,/\bcpu temperature\b/],
-  cp:[/\bcpu package power\b/],
-  cc:[/\bcore effective clocks\b.*\bavg\b/,/\baverage effective clock\b/,/\bcore effective clock\b/],
-  ramload:[/\bphysical memory load\b/],
-  ramused:[/\bphysical memory used\b/,/\bmemory used\b/],
-  vram:[/\bgpu memory allocated\b/,/\bdedicated memory usage\b/,/\bgpu memory used\b/],
-  vramload:[/\bgpu memory load\b/,/\bmemory controller load\b/]
+ const rs=S.latest?.Readings||[];
+ const unit=r=>String(r.Unit||'').trim().toLowerCase();
+ const txt=r=>readingText(r);
+ const score=(r,tests)=>{
+   let s=0;
+   for(const [re,pts] of tests)if(re.test(txt(r)))s+=pts;
+   return s;
  };
- return findRegex(map[kind]||[]);
+ const pick=(tests,unitTests=[])=>{
+   let best=null,bestScore=-Infinity;
+   for(const r of rs){
+     let s=score(r,tests);
+     if(unitTests.length){
+       const u=unit(r);
+       if(unitTests.some(x=>x.test(u)))s+=35;else s-=25;
+     }
+     if(s>bestScore&&s>0){best=r;bestScore=s}
+   }
+   return best;
+ };
+
+ switch(kind){
+  case 'gpu':
+   return pick([[/\bgpu core load\b/,100],[/\bgpu utilization\b/,90],[/\bgpu load\b/,75]],[/^%$/,/percent/]);
+  case 'gt':
+   return pick([[/\bgpu temperature\b/,100],[/\bgpu.*core.*temperature\b/,95],[/\bgpu temp\b/,80],[/hot ?spot|junction/, -100]],[/°c/,/^c$/]);
+  case 'ghot':
+   return pick([[/gpu.*hot ?spot/,120],[/hot ?spot.*temperature/,110],[/gpu.*junction.*temperature/,105],[/junction temperature/,90]],[/°c/,/^c$/]);
+  case 'gp':
+   return pick([
+     [/\bgpu asic power\b/,130],[/\bgpu total board power\b/,125],[/\btotal board power\b/,120],
+     [/\bgpu board power\b/,115],[/\bgpu chip power\b/,110],[/\bgpu power\b/,105],
+     [/\bgraphics power\b/,95],[/\bgpu ppt\b/,80],[/\bppt\b/,35]
+   ],[/^w$/,/watt/]);
+  case 'gc':
+   return pick([[/\bgpu core clock\b/,120],[/\bgpu clock\b/,110],[/\bgraphics clock\b/,100],[/memory/, -100]],[/mhz/,/ghz/]);
+  case 'gmc':
+   return pick([[/\bgpu memory clock\b/,125],[/\bmemory clock\b/,80],[/\bvram.*clock\b/,100]],[/mhz/,/ghz/]);
+  case 'gfan':
+   return pick([[/\bgpu fan\b/,120],[/\bfan.*gpu\b/,110],[/\bgpu.*fan speed\b/,125]],[/rpm/,/^%$/,/percent/]);
+  case 'cpumax':
+   return pick([[/\bmax cpu thread usage\b/,140],[/\bmaximum cpu thread usage\b/,135],[/\bmax cpu core usage\b/,125],[/\bmaximum cpu core usage\b/,120]],[/^%$/,/percent/]);
+  case 'cpu':
+   return pick([[/\btotal cpu usage\b/,130],[/\bcpu total\b/,110],[/\bcpu usage\b/,70]],[/^%$/,/percent/]);
+  case 'ct':
+   return pick([[/\bcpu tctl tdie\b/,135],[/\bcpu package temperature\b/,130],[/\bcpu package\b/,80],[/\bcpu temperature\b/,105]],[/°c/,/^c$/]);
+  case 'cp':
+   return pick([[/\bcpu package power\b/,140],[/\bpackage power\b/,120],[/\bcpu power\b/,90]],[/^w$/,/watt/]);
+  case 'cc':
+   return pick([[/\bcore effective clocks.*avg\b/,140],[/\baverage effective clock\b/,135],[/\bcore effective clock\b/,100]],[/mhz/,/ghz/]);
+  case 'cpuppt':
+   return pick([[/\bcpu ppt\b/,130],[/\bppt limit\b/,120],[/\bpackage power limit\b/,100],[/\bcpu power limit\b/,95]],[/^%$/,/percent/,/^w$/,/watt/]);
+  case 'ramload':
+   return pick([[/\bphysical memory load\b/,130],[/\bram load\b/,110],[/\bmemory load\b/,75]],[/^%$/,/percent/]);
+  case 'ramused':
+   return pick([[/\bphysical memory used\b/,130],[/\bram used\b/,110],[/\bmemory used\b/,70]],[/mb/,/gb/]);
+  case 'ramavail':
+   return pick([[/\bavailable physical memory\b/,140],[/\bphysical memory available\b/,135],[/\bavailable memory\b/,90]],[/mb/,/gb/]);
+  case 'committed':
+   return pick([[/\bcommitted memory\b/,130],[/\bcommit charge\b/,100]],[/mb/,/gb/,/^%$/,/percent/]);
+  case 'vram':
+   return pick([[/\bgpu memory allocated\b/,140],[/\bdedicated memory usage\b/,130],[/\bgpu memory used\b/,125],[/\bvram used\b/,120]],[/mb/,/gb/]);
+  case 'vramload':
+   return pick([[/\bgpu memory load\b/,140],[/\bvram.*load\b/,130],[/\bdedicated memory.*usage\b/,80]],[/^%$/,/percent/]);
+  case 'pagefile':
+   return pick([[/\bpage file usage\b/,140],[/\bpagefile usage\b/,135],[/\bpage file\b/,80]],[/^%$/,/percent/,/mb/,/gb/]);
+  case 'memerrors':
+   return pick([[/\bmemory errors\b/,130],[/\becc.*error\b/,120],[/\bwhea.*memory\b/,110]]);
+  case 'cpubusy':
+   return pick([[/\bcpu busy\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'cpuwait':
+   return pick([[/\bcpu wait\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gbusy':
+   return pick([[/\bgpu busy\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gpuwait':
+   return pick([[/\bgpu wait\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gpulatency':
+   return pick([[/\bgpu latency\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'displaylatency':
+   return pick([[/\bdisplay latency\b/,140],[/\brender present latency\b/,130],[/\brender latency\b/,120],[/\bpresent latency\b/,110]],[/^ms$/,/milliseconds/]);
+ }
+ return null;
+}
+
+function limitStatus(scope,type){
+ const rs=S.latest?.Readings||[];
+ const scopeRe=scope==='gpu'?/\bgpu\b|graphics/:/\bcpu\b|package|prochot|ppt|tdc|edc/;
+ const typeRe=type==='thermal'
+   ?/thermal thrott|thermal limit|performance limit thermal|prochot|critical temperature/
+   :/power thrott|power limit|performance limit power|ppt limit|power reporting deviation/;
+
+ const candidates=rs.filter(r=>scopeRe.test(readingText(r))&&typeRe.test(readingText(r)));
+ if(!candidates.length)return null;
+
+ // Prefer active boolean/status readings, then percentage limit readings.
+ for(const r of candidates){
+   const v=n(r.Value),u=String(r.Unit||'').trim().toLowerCase();
+   if(v===null)continue;
+   if((u===''||u==='yes/no'||u==='bool'||u==='boolean')&&v>0)
+     return {display:'ACTIVE',level:'bad',reason:r.Label||'Limit active',reading:r};
+ }
+ const pct=candidates.find(r=>/^%$|percent/.test(String(r.Unit||'').trim().toLowerCase()));
+ if(pct){
+   const v=n(pct.Value);
+   if(v!==null){
+     return {
+       display:fmt(v,pct.Unit),
+       level:v>=100?'bad':v>=90?'warn':null,
+       reason:v>=100?'Limit at or above 100%':v>=90?'Limit above 90%':null,
+       reading:pct
+     };
+   }
+ }
+
+ const any=candidates[0],v=n(any.Value);
+ if(v!==null&&v>0)return {display:fmt(v,any.Unit),level:'bad',reason:any.Label||'Limit active',reading:any};
+ return {display:'OK',level:null,reason:null,reading:any};
 }
 
 function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
@@ -1310,16 +1416,44 @@ function updateOverview(){
   ovCpuBusy:overviewReading('cpubusy'),ovCpuWait:overviewReading('cpuwait'),
   ovGpuBusy:overviewReading('gbusy'),ovGpuWait:overviewReading('gpuwait'),
   ovGpuLatency:overviewReading('gpulatency'),ovDisplayLatency:overviewReading('displaylatency'),
-  ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGp:overviewReading('gp'),ovGc:overviewReading('gc'),
-  ovCpu:overviewReading('cpu'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),ovCc:overviewReading('cc'),
-  ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload')
+  ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGhot:overviewReading('ghot'),ovGp:overviewReading('gp'),
+  ovGc:overviewReading('gc'),ovGmc:overviewReading('gmc'),ovGfan:overviewReading('gfan'),
+  ovCpu:overviewReading('cpu'),ovCpuMax:overviewReading('cpumax'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),
+  ovCc:overviewReading('cc'),ovCpuPpt:overviewReading('cpuppt'),
+  ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovRamAvail:overviewReading('ramavail'),
+  ovCommitted:overviewReading('committed'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload'),
+  ovPageFile:overviewReading('pagefile'),ovMemErrors:overviewReading('memerrors')
  };
  for(const [id,r] of Object.entries(vals)){
    const el=$(id);
    el.textContent=r?fmt(r.Value,r.Unit):'—';
    if(r)applyHealth(el,r,r.Value);else clearHealth(el);
  }
- $('gamingTargetLabel').textContent=`PresentMon frame pipeline • target ${S.targetFps} FPS`;
+
+ const gpuThermal=limitStatus('gpu','thermal'),gpuPower=limitStatus('gpu','power');
+ const gpuStatus=gpuThermal?.level==='bad'?gpuThermal:gpuPower?.level==='bad'?gpuPower:gpuThermal?.level==='warn'?gpuThermal:gpuPower?.level==='warn'?gpuPower:null;
+ const ge=$('ovGthrottle');
+ if(gpuStatus){
+   ge.textContent=gpuStatus.display;clearHealth(ge);
+   ge.classList.add(gpuStatus.level==='bad'?'health-bad':'health-warn');
+   if(gpuStatus.reason){ge.title=gpuStatus.reason;ge.dataset.healthTitle='1'}
+ }else if(gpuThermal||gpuPower){ge.textContent='OK';clearHealth(ge)}
+ else{ge.textContent='—';clearHealth(ge)}
+
+ const cpuThermal=limitStatus('cpu','thermal'),cpuPower=limitStatus('cpu','power');
+ for(const [id,status] of [['ovCpuThermal',cpuThermal],['ovCpuPowerLimit',cpuPower]]){
+   const el=$(id);clearHealth(el);
+   if(!status){el.textContent='—';continue}
+   el.textContent=status.display;
+   if(status.level){
+     el.classList.add(status.level==='bad'?'health-bad':'health-warn');
+     if(status.reason){el.title=status.reason;el.dataset.healthTitle='1'}
+   }
+ }
+
+ $('gamingTargetLabel').textContent=Number(S.targetFps)>0
+   ?`PresentMon frame pipeline • target ${S.targetFps} FPS`
+   :'PresentMon frame pipeline • target off';
 }
 function updateFps(){
  const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),
@@ -1414,19 +1548,35 @@ const PRESETS={
   r=>/display latency|render present latency|render latency|present latency/.test(readingText(r))
  ],
  gpu:[
-  r=>/gpu core load/.test(readingText(r)),r=>/gpu temperature/.test(readingText(r)),r=>/gpu hot spot/.test(readingText(r)),
-  r=>/gpu power|total graphics power/.test(readingText(r)),r=>/gpu clock/.test(readingText(r)),
-  r=>/gpu memory allocated|dedicated memory usage|gpu memory used/.test(readingText(r))
+  r=>/gpu core load|gpu utilization/.test(readingText(r)),
+  r=>/gpu temperature/.test(readingText(r))&&!/hot ?spot|junction/.test(readingText(r)),
+  r=>/gpu.*hot ?spot|gpu.*junction/.test(readingText(r)),
+  r=>(/gpu asic power|gpu total board power|total board power|gpu board power|gpu chip power|gpu power|graphics power|gpu ppt/.test(readingText(r)))&&/^w$|watt/.test(String(r.Unit||'').toLowerCase()),
+  r=>/gpu core clock|gpu clock|graphics clock/.test(readingText(r))&&!/memory/.test(readingText(r)),
+  r=>/gpu memory clock|vram.*clock/.test(readingText(r)),
+  r=>/gpu fan/.test(readingText(r)),
+  r=>/gpu memory allocated|dedicated memory usage|gpu memory used|vram used/.test(readingText(r)),
+  r=>/gpu.*thermal thrott|gpu.*performance limit thermal|gpu.*power limit|gpu.*performance limit power/.test(readingText(r))
  ],
  cpu:[
-  r=>/total cpu usage/.test(readingText(r)),r=>/cpu tctl tdie|cpu package temperature/.test(readingText(r)),
-  r=>/cpu package power/.test(readingText(r)),r=>/core effective clocks.*avg|average effective clock/.test(readingText(r)),
-  r=>/max cpu thread usage|maximum cpu core usage/.test(readingText(r))
+  r=>/total cpu usage/.test(readingText(r)),
+  r=>/max cpu thread usage|maximum cpu thread usage|max cpu core usage|maximum cpu core usage/.test(readingText(r)),
+  r=>/cpu tctl tdie|cpu package temperature/.test(readingText(r)),
+  r=>/cpu package power|package power/.test(readingText(r)),
+  r=>/core effective clocks.*avg|average effective clock/.test(readingText(r)),
+  r=>/cpu ppt|ppt limit|cpu power limit/.test(readingText(r)),
+  r=>/thermal thrott|prochot/.test(readingText(r)),
+  r=>/power thrott|power limit/.test(readingText(r))
  ],
  memory:[
-  r=>/physical memory load/.test(readingText(r)),r=>/physical memory used/.test(readingText(r)),
-  r=>/available physical memory/.test(readingText(r)),r=>/committed memory/.test(readingText(r)),
-  r=>/gpu memory allocated|dedicated memory usage|gpu memory used/.test(readingText(r))
+  r=>/physical memory load/.test(readingText(r)),
+  r=>/physical memory used/.test(readingText(r)),
+  r=>/available physical memory|physical memory available/.test(readingText(r)),
+  r=>/committed memory|commit charge/.test(readingText(r)),
+  r=>/page file usage|pagefile usage/.test(readingText(r)),
+  r=>/gpu memory allocated|dedicated memory usage|gpu memory used|vram used/.test(readingText(r)),
+  r=>/gpu memory load|vram.*load/.test(readingText(r)),
+  r=>/memory errors|ecc.*error|whea.*memory/.test(readingText(r))
  ]
 };
 function applyPreset(which){
@@ -1469,7 +1619,7 @@ function applyImportedSetup(cfg){
  if(cfg.ui?.category){S.category=cfg.ui.category;setFilterButtons()}
  if(cfg.ui?.theme)applyTheme(cfg.ui.theme);
  if(typeof cfg.ui?.healthColors==='boolean'){S.healthColors=cfg.ui.healthColors;$('healthColors').checked=S.healthColors}
- if(cfg.ui?.targetFps){S.targetFps=Number(cfg.ui.targetFps)||60;$('targetFps').value=String(S.targetFps)}
+ if(cfg.ui&&cfg.ui.targetFps!==undefined){const tf=Number(cfg.ui.targetFps);S.targetFps=Number.isFinite(tf)?tf:60;$('targetFps').value=String(S.targetFps)}
  const fr=resolveDescriptor(cfg.sources?.fps),tr=resolveDescriptor(cfg.sources?.frameTime);S.fpsPref=fr?keyOf(fr):'';S.ftPref=tr?keyOf(tr):'';
  save();rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();updateDynamic();schedulePoll();
  toast(`Setup imported${unresolved?` • ${unresolved} sensor(s) not found on this PC`:''}`)
@@ -1526,7 +1676,7 @@ $('theme').addEventListener('change',e=>applyTheme(e.target.value));
 $('healthColors').checked=S.healthColors;
 $('targetFps').value=String(S.targetFps);
 $('healthColors').addEventListener('change',e=>{S.healthColors=e.target.checked;save();updateDynamic()});
-$('targetFps').addEventListener('change',e=>{S.targetFps=Number(e.target.value)||60;save();updateDynamic()});
+$('targetFps').addEventListener('change',e=>{const tf=Number(e.target.value);S.targetFps=Number.isFinite(tf)?tf:60;save();updateDynamic()});
 $('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();updateDynamic()});
 $('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();updateDynamic()});
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
