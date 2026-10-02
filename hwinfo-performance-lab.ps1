@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.8</title>
+<title>HWiNFO Performance Lab v6.8.1</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -777,6 +777,54 @@ select{
 .sourcebar .spacer{flex:1}
 #resetFpsAnalysis{white-space:nowrap}
 
+
+/* v6.8.1 top-bar lap navigation */
+.search-shell{
+  flex:1 1 420px;
+  min-width:260px;
+}
+.top-lap-controls{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+  min-width:0;
+  padding-left:2px;
+}
+.top-lap-label{
+  color:var(--muted);
+  white-space:nowrap;
+  font-size:max(var(--ui-min-font),calc(10px * var(--ui-font-scale)));
+}
+.top-lap-controls select{
+  min-width:160px!important;
+  max-width:220px!important;
+  min-height:40px!important;
+}
+.top-lap-new{
+  min-height:40px;
+  white-space:nowrap;
+  padding-left:12px;
+  padding-right:12px;
+  background:color-mix(in srgb,var(--accent) 8%,var(--panel));
+  border-color:color-mix(in srgb,var(--accent) 28%,var(--line));
+}
+@media(max-width:1100px){
+  .search-shell{flex:1 1 100%}
+  .top-lap-controls{flex:1 1 auto}
+}
+@media(max-width:560px){
+  .top-lap-controls{
+    width:100%;
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) auto;
+  }
+  .top-lap-controls select{
+    min-width:0!important;
+    width:100%;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -791,6 +839,15 @@ select{
   <div class="search-shell">
    <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
    <input class="search" type="text" id="search" placeholder="Search sensors, readings, temperatures, clocks…">
+  </div>
+
+  <div class="top-lap-controls">
+   <span class="top-lap-label">View</span>
+   <select id="lapView" aria-label="Session scope">
+    <option value="current">Current lap</option>
+    <option value="all">All session</option>
+   </select>
+   <button type="button" class="top-lap-new" id="newLapQuick">+ New lap</button>
   </div>
 
   <div class="menu-wrap">
@@ -979,8 +1036,6 @@ select{
 <div class="sessionbar">
  <span>Session <strong id="elapsed">00:00</strong></span><span class="dot"></span>
  <span>Current lap <strong id="lapElapsed">00:00</strong></span><span class="dot"></span>
- <label class="session-scope"><span>View</span><select id="lapView"><option value="current">Current lap</option><option value="all">All session</option></select></label>
- <button type="button" class="session-mini-btn" id="newLapQuick">New lap</button><span class="dot"></span>
  <span>Source samples <strong id="sampleCount">0</strong></span><span class="dot"></span>
  <span>HWiNFO poll <strong id="sourcePoll">—</strong></span><span class="dot"></span>
  <span>Last source update <strong id="sourceUpdate">—</strong></span>
