@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.8.1</title>
+<title>HWiNFO Performance Lab v6.9</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -825,6 +825,163 @@ select{
   }
 }
 
+
+/* v6.9 layout polish */
+.commandbar{
+  gap:8px;
+}
+.search-shell{
+  flex:1 1 360px;
+  max-width:620px;
+  min-width:260px;
+}
+.top-lap-controls{
+  display:flex;
+  align-items:stretch;
+  gap:0;
+  flex:0 0 auto;
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  background:var(--panel);
+}
+.top-lap-controls select{
+  min-width:158px!important;
+  max-width:220px!important;
+  min-height:40px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.top-lap-new{
+  min-height:40px!important;
+  border:0!important;
+  border-left:1px solid var(--line)!important;
+  border-radius:0!important;
+  padding:6px 12px!important;
+  background:color-mix(in srgb,var(--accent) 7%,var(--panel))!important;
+  white-space:nowrap;
+}
+.top-lap-new:hover{
+  background:color-mix(in srgb,var(--accent) 14%,var(--panel))!important;
+}
+.sectionhead-actions{
+  align-items:center;
+}
+.section-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.section-action{
+  min-height:32px;
+  padding:5px 9px;
+  white-space:nowrap;
+  font-size:max(var(--ui-min-font),calc(10px * var(--ui-font-scale)));
+}
+.dashboard-section.section-hidden #pinnedBody{
+  display:none;
+}
+.dashboard-section.section-hidden .sectionhead{
+  margin-bottom:0;
+}
+.analysis-clock{
+  color:var(--muted);
+  white-space:nowrap;
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.analysis-clock strong{color:var(--text)}
+.analysis-settings{
+  position:relative;
+}
+.analysis-settings>summary{
+  list-style:none;
+  cursor:pointer;
+  min-height:32px;
+  display:flex;
+  align-items:center;
+  padding:5px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--panel);
+  color:var(--text);
+  white-space:nowrap;
+  font-size:max(var(--ui-min-font),calc(10px * var(--ui-font-scale)));
+}
+.analysis-settings>summary::-webkit-details-marker{display:none}
+.analysis-settings>summary::after{
+  content:"";
+  width:6px;height:6px;
+  border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg);
+  margin-left:8px;
+  margin-top:-3px;
+  opacity:.65;
+}
+.analysis-settings[open]>summary{
+  border-color:color-mix(in srgb,var(--accent) 40%,var(--line));
+  background:var(--panel2);
+}
+.analysis-settings-panel{
+  position:absolute;
+  z-index:180;
+  top:calc(100% + 6px);
+  right:0;
+  width:min(460px,90vw);
+  padding:10px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 18px 50px rgba(0,0,0,.25);
+}
+.analysis-field{
+  display:grid;
+  grid-template-columns:120px minmax(0,1fr);
+  align-items:center;
+  gap:8px;
+  margin:6px 0;
+}
+.analysis-field>span{
+  color:var(--muted);
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.analysis-field select{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+}
+.analysis-source-state{
+  margin-top:8px;
+  padding-top:8px;
+  border-top:1px solid var(--line-soft);
+  color:var(--muted);
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.fps-section .sectionhead{
+  margin-bottom:8px;
+}
+.fpsgrid{
+  margin-top:0;
+}
+@media(max-width:1050px){
+  .search-shell{max-width:none;flex:1 1 100%}
+}
+@media(max-width:720px){
+  .sectionhead-actions{align-items:flex-start;flex-direction:column}
+  .section-actions{justify-content:flex-start}
+  .analysis-settings-panel{left:0;right:auto}
+  .top-lap-controls{flex:1 1 auto}
+}
+@media(max-width:520px){
+  .top-lap-controls{width:100%}
+  .top-lap-controls select{flex:1;max-width:none!important}
+}
+
 </style>
 </head>
 <body>
@@ -841,13 +998,12 @@ select{
    <input class="search" type="text" id="search" placeholder="Search sensors, readings, temperatures, clocks…">
   </div>
 
-  <div class="top-lap-controls">
-   <span class="top-lap-label">View</span>
+  <div class="top-lap-controls" aria-label="Lap navigation">
    <select id="lapView" aria-label="Session scope">
-    <option value="current">Current lap</option>
+    <option value="current">Lap 1 · Current</option>
     <option value="all">All session</option>
    </select>
-   <button type="button" class="top-lap-new" id="newLapQuick">+ New lap</button>
+   <button type="button" class="top-lap-new" id="newLapQuick" title="Start a new lap">+ Lap</button>
   </div>
 
   <div class="menu-wrap">
@@ -933,8 +1089,12 @@ select{
      <span><strong>Start new lap</strong><small>Begin a fresh comparison interval without deleting session history.</small></span><span>＋</span>
     </button>
 
+    <button class="menu-action" id="resetLaps" data-menu-action>
+     <span><strong>Reset laps</strong><small>Delete lap markers and start again at Lap 1 now. Full-session history stays available.</small></span><span>↺</span>
+    </button>
+
     <button class="menu-action danger-action" id="reset" data-menu-action>
-     <span><strong>Reset session</strong><small>Clear local graphs, session statistics and sampled FPS percentiles.</small></span>
+     <span><strong>Reset entire session</strong><small>Delete local telemetry history, laps and FPS analysis and start from zero.</small></span>
     </button>
 
     <div class="menu-section menu-section-last">
@@ -1090,32 +1250,50 @@ select{
  </div>
 </div>
 
-<div class="sectionhead">
- <div><h2>Pinned telemetry</h2><p>Drag cards to reorder. Drag any sensor row here to pin it. Card mode changes only the large number; Current / Min / Avg / Max always remain visible.</p></div>
- <div class="global-card-controls"></div>
-</div>
-<div class="dropzone" id="dropzone">Drop a sensor here to pin it</div>
-<div class="pingrid" id="pinHost"></div>
+<section class="dashboard-section" id="pinnedSection">
+ <div class="sectionhead sectionhead-actions">
+  <div><h2>Pinned telemetry</h2><p>Drag cards to reorder or drag a sensor here to pin it.</p></div>
+  <div class="section-actions">
+   <button type="button" class="section-action" id="togglePinnedSection">Hide pinned</button>
+  </div>
+ </div>
+ <div id="pinnedBody">
+  <div class="dropzone" id="dropzone">Drop a sensor here to pin it</div>
+  <div class="pingrid" id="pinHost"></div>
+ </div>
+</section>
 
-<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Scope: <strong id="fpsScopeLabel">Current lap</strong>. FPS analysis can be reset independently. Percentiles use HWiNFO polling samples, not raw per-frame PresentMon data.</p></div></div>
-<div class="sourcebar">
- <div class="source-group"><label for="fpsSource">FPS source</label><select id="fpsSource"><option value="">Auto detect</option></select></div>
- <div class="source-group"><label for="ftSource">Frame-time source</label><select id="ftSource"><option value="">Auto detect</option></select></div>
- <span class="source-state" id="fpsSourceState">waiting for HWiNFO…</span>
- <span class="spacer"></span>
- <span class="source-state">Analysis <strong id="fpsAnalysisElapsed">00:00</strong></span>
- <button type="button" id="resetFpsAnalysis">Reset FPS analysis</button>
-</div>
-<div class="fpsgrid">
- <div class="metric"><div class="k">Average FPS</div><div class="v" id="fpsAvg">—</div><div class="d">Session sample average</div></div>
- <div class="metric"><div class="k">Sampled P5 FPS</div><div class="v" id="fpsP5">—</div><div class="d">5th percentile</div></div>
- <div class="metric"><div class="k">Sampled P1 FPS</div><div class="v" id="fpsP1">—</div><div class="d">1st percentile</div></div>
- <div class="metric"><div class="k">Sampled P0.1 FPS</div><div class="v" id="fpsP01">—</div><div class="d">Needs a longer run</div></div>
- <div class="metric"><div class="k">FPS range</div><div class="v" id="fpsRange">—</div><div class="d">Session min / max</div></div>
- <div class="metric"><div class="k">Frame-time P95</div><div class="v" id="ftP95">—</div><div class="d">Sample percentile</div></div>
- <div class="metric"><div class="k">Frame-time P99</div><div class="v" id="ftP99">—</div><div class="d">Sample percentile</div></div>
- <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Worst sampled value</div></div>
-</div>
+<section class="dashboard-section fps-section" id="fpsSection">
+ <div class="sectionhead sectionhead-actions">
+  <div>
+   <h2>FPS session analysis</h2>
+   <p><span id="fpsScopeLabel">Current lap</span> · sampled from HWiNFO polling, not raw per-frame PresentMon events.</p>
+  </div>
+  <div class="section-actions fps-section-actions">
+   <span class="analysis-clock">Analysis <strong id="fpsAnalysisElapsed">00:00</strong></span>
+   <details class="analysis-settings" id="analysisSettings">
+    <summary>Analysis settings</summary>
+    <div class="analysis-settings-panel">
+     <label class="analysis-field"><span>FPS source</span><select id="fpsSource"><option value="">Auto detect</option></select></label>
+     <label class="analysis-field"><span>Frame-time source</span><select id="ftSource"><option value="">Auto detect</option></select></label>
+     <div class="analysis-source-state" id="fpsSourceState">waiting for HWiNFO…</div>
+    </div>
+   </details>
+   <button type="button" class="section-action" id="resetFpsAnalysis">Reset analysis</button>
+   <button type="button" class="section-action" id="moveFpsSection">Move up</button>
+  </div>
+ </div>
+ <div class="fpsgrid">
+  <div class="metric"><div class="k">Average FPS</div><div class="v" id="fpsAvg">—</div><div class="d">Scope sample average</div></div>
+  <div class="metric"><div class="k">Sampled P5 FPS</div><div class="v" id="fpsP5">—</div><div class="d">5th percentile</div></div>
+  <div class="metric"><div class="k">Sampled P1 FPS</div><div class="v" id="fpsP1">—</div><div class="d">1st percentile</div></div>
+  <div class="metric"><div class="k">Sampled P0.1 FPS</div><div class="v" id="fpsP01">—</div><div class="d">Needs a longer run</div></div>
+  <div class="metric"><div class="k">FPS range</div><div class="v" id="fpsRange">—</div><div class="d">Scope min / max</div></div>
+  <div class="metric"><div class="k">Frame-time P95</div><div class="v" id="ftP95">—</div><div class="d">Sample percentile</div></div>
+  <div class="metric"><div class="k">Frame-time P99</div><div class="v" id="ftP99">—</div><div class="d">Sample percentile</div></div>
+  <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Worst sampled value</div></div>
+ </div>
+</section>
 
 <div class="sectionhead">
  <div><h2>All HWiNFO sensors</h2><p>★ pin, or drag a row into Pinned telemetry. HWiNFO Min/Max/Avg below are HWiNFO's own counters.</p></div>
@@ -1309,7 +1487,9 @@ const S={
  overviewConfig:JSON.parse(localStorage.getItem('hpl-v67-overview')||'null'),
  laps:[{id:1,start:Date.now()}],
  viewScope:'current',
- fpsAnalysis:{fps:[],ft:[],startedAt:Date.now()}
+ fpsAnalysis:{fps:[],ft:[],startedAt:Date.now()},
+ pinnedVisible:localStorage.getItem('hpl-v69-pinned-visible')!=='0',
+ fpsPosition:localStorage.getItem('hpl-v69-fps-position')==='above'?'above':'below'
 };
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
@@ -1323,6 +1503,8 @@ function save(){
  localStorage.setItem('hpl-v62-health-colors',S.healthColors?'1':'0');
  localStorage.setItem('hpl-v62-target-fps',String(S.targetFps));
  localStorage.setItem('hpl-v67-overview',JSON.stringify(S.overviewConfig));
+ localStorage.setItem('hpl-v69-pinned-visible',S.pinnedVisible?'1':'0');
+ localStorage.setItem('hpl-v69-fps-position',S.fpsPosition);
 }
 function descriptor(r){return r?{sensor:r.Sensor||'',sensorOriginal:r.SensorOriginal||'',label:r.Label||'',labelOriginal:r.LabelOriginal||'',unit:r.Unit||''}:null}
 function resolveDescriptor(d){
@@ -1730,7 +1912,7 @@ function syncLapSelector(){
  const el=$('lapView');if(!el)return;
  const value=S.viewScope||'current';
  const previous=S.laps.slice(0,-1);
- el.innerHTML=`<option value="current">Current lap (Lap ${currentLap().id})</option><option value="all">All session</option>`+
+ el.innerHTML=`<option value="current">Lap ${currentLap().id} · Current</option><option value="all">All session</option>`+
    previous.map(l=>`<option value="lap:${l.id}">Lap ${l.id}</option>`).join('');
  el.value=[...el.options].some(o=>o.value===value)?value:'current';
  if(el.value!==value)S.viewScope='current';
@@ -1744,6 +1926,33 @@ function setViewScope(value){
  S.viewScope=value||'current';
  syncLapSelector();
  updateDynamic();
+}
+
+function applyPinnedVisibility(){
+ const section=$('pinnedSection'),btn=$('togglePinnedSection');
+ if(!section||!btn)return;
+ section.classList.toggle('section-hidden',!S.pinnedVisible);
+ btn.textContent=S.pinnedVisible?'Hide pinned':'Show pinned';
+ btn.setAttribute('aria-pressed',S.pinnedVisible?'false':'true');
+}
+function togglePinnedVisibility(){
+ S.pinnedVisible=!S.pinnedVisible;save();applyPinnedVisibility();
+}
+
+function applySectionOrder(){
+ const pinned=$('pinnedSection'),fps=$('fpsSection');
+ if(!pinned||!fps||!pinned.parentNode)return;
+ if(S.fpsPosition==='above'){
+   if(fps.nextElementSibling!==pinned)pinned.before(fps);
+ }else{
+   if(pinned.nextElementSibling!==fps)pinned.after(fps);
+ }
+ const btn=$('moveFpsSection');
+ if(btn)btn.textContent=S.fpsPosition==='above'?'Move down':'Move up';
+}
+function toggleFpsPosition(){
+ S.fpsPosition=S.fpsPosition==='above'?'below':'above';
+ save();applySectionOrder();
 }
 
 function newLap(){
@@ -1764,6 +1973,16 @@ function resetLapState(){
  S.laps=[{id:1,start:now}];
  S.viewScope='current';
  syncLapSelector();
+}
+
+function resetLapsOnly(){
+ if(!confirm('Delete all lap markers and start again at Lap 1 now? Full-session telemetry history will stay available under All session.'))return;
+ const now=Date.now();
+ S.laps=[{id:1,start:now}];
+ S.viewScope='current';
+ syncLapSelector();
+ updateDynamic();
+ toast('Laps reset · fresh Lap 1 started');
 }
 
 function resetFpsAnalysis(confirmFirst=true){
@@ -2145,7 +2364,7 @@ function exportSetup(){
  const pinItems=S.pins.map(k=>{const r=reading(k);if(!r)return null;return {reading:descriptor(r),options:ensureOpt(k)}}).filter(Boolean);
  const cfg={
   schema:'hwinfo-performance-lab-setup',version:5,exportedAt:new Date().toISOString(),
-  ui:{theme:S.themePref,minFontPx:S.minFontPx,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category,healthColors:S.healthColors,targetFps:S.targetFps,overview:S.overviewConfig},
+  ui:{theme:S.themePref,minFontPx:S.minFontPx,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category,healthColors:S.healthColors,targetFps:S.targetFps,overview:S.overviewConfig,pinnedVisible:S.pinnedVisible,fpsPosition:S.fpsPosition},
   pins:pinItems,
   sources:{fps:S.fpsPref?descriptor(reading(S.fpsPref)):null,frameTime:S.ftPref?descriptor(reading(S.ftPref)):null}
  };
@@ -2165,7 +2384,9 @@ function applyImportedSetup(cfg){
  if(typeof cfg.ui?.healthColors==='boolean'){S.healthColors=cfg.ui.healthColors;$('healthColors').checked=S.healthColors}
  if(cfg.ui&&cfg.ui.targetFps!==undefined){const tf=Number(cfg.ui.targetFps);S.targetFps=Number.isFinite(tf)?tf:60;$('targetFps').value=String(S.targetFps)}
  if(cfg.ui?.overview&&typeof cfg.ui.overview==='object')S.overviewConfig=cfg.ui.overview;
- ensureOverviewConfig();renderOverviewStructure();
+ if(typeof cfg.ui?.pinnedVisible==='boolean')S.pinnedVisible=cfg.ui.pinnedVisible;
+ if(cfg.ui?.fpsPosition==='above'||cfg.ui?.fpsPosition==='below')S.fpsPosition=cfg.ui.fpsPosition;
+ ensureOverviewConfig();renderOverviewStructure();applyPinnedVisibility();applySectionOrder();
  const fr=resolveDescriptor(cfg.sources?.fps),tr=resolveDescriptor(cfg.sources?.frameTime);S.fpsPref=fr?keyOf(fr):'';S.ftPref=tr?keyOf(tr):'';
  save();rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();updateDynamic();schedulePoll();
  toast(`Setup imported${unresolved?` • ${unresolved} sensor(s) not found on this PC`:''}`)
@@ -2212,7 +2433,11 @@ document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
 });
 document.querySelectorAll('.menu-panel').forEach(panel=>panel.addEventListener('click',e=>e.stopPropagation()));
 document.querySelectorAll('[data-menu-action]').forEach(el=>el.addEventListener('click',()=>setTimeout(()=>closeMenus(),0)));
-document.addEventListener('click',()=>closeMenus());
+document.addEventListener('click',e=>{
+ closeMenus();
+ const details=$('analysisSettings');
+ if(details?.open&&!details.contains(e.target))details.open=false;
+});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenus();if(!$('overviewEditorBackdrop').classList.contains('hidden'))closeOverviewEditor()}});
 
 $('search').addEventListener('input',()=>{S.topology='';renderGroupsStructure(true)});
@@ -2239,15 +2464,18 @@ $('pause').onclick=()=>{
 };
 $('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
 $('newLapQuick').onclick=newLap;$('newLapMenu').onclick=newLap;
+$('resetLaps').onclick=resetLapsOnly;
 $('lapView').addEventListener('change',e=>setViewScope(e.target.value));
 $('resetFpsAnalysis').onclick=()=>resetFpsAnalysis(true);
+$('togglePinnedSection').onclick=togglePinnedVisibility;
+$('moveFpsSection').onclick=toggleFpsPosition;
 $('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
 $('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
 $('controlsOn').onclick=()=>applyAllControls(true);$('controlsOff').onclick=()=>applyAllControls(false);
 $('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
 $('exportSetup').onclick=exportSetup;$('importSetup').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files?.[0])importSetupFile(e.target.files[0])};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.category=b.dataset.filter;setFilterButtons();S.topology='';renderGroupsStructure(true)});
-bindGlobalDnD();applyTheme(S.themePref);applyTypographyScale(S.minFontPx);setFilterButtons();ensureOverviewConfig();renderOverviewStructure();syncLapSelector();
+bindGlobalDnD();applyTheme(S.themePref);applyTypographyScale(S.minFontPx);setFilterButtons();ensureOverviewConfig();renderOverviewStructure();syncLapSelector();applyPinnedVisibility();applySectionOrder();
 
 setInterval(()=>{
  const now=Date.now();
