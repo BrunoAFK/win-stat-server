@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.6</title>
+<title>HWiNFO Performance Lab v6.7</title>
 <style>
 :root{
   color-scheme:dark;
@@ -662,6 +662,97 @@ select{
   border-color:color-mix(in srgb,var(--accent) 38%,var(--line));
 }
 
+
+/* v6.7 customizable overview */
+.cat-head-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.cat-edit{
+  min-height:25px;
+  padding:3px 7px;
+  font-size:9px;
+  border-radius:7px;
+  background:transparent;
+}
+.cat-metric{
+  position:relative;
+}
+.cat-metric[draggable="true"]{cursor:grab}
+.cat-metric.overview-dragging{opacity:.45}
+.cat-metric.overview-drop-target{
+  outline:2px solid color-mix(in srgb,var(--accent) 55%,transparent);
+  outline-offset:-2px;
+}
+.overview-editor-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:500;
+  display:grid;
+  place-items:center;
+  padding:20px;
+  background:rgba(0,0,0,.35);
+  backdrop-filter:blur(4px);
+}
+.overview-editor{
+  width:min(520px,94vw);
+  max-height:min(720px,88vh);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:0 24px 70px rgba(0,0,0,.32);
+}
+.overview-editor-head,.overview-editor-foot{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:13px 14px;
+}
+.overview-editor-head{
+  justify-content:space-between;
+  border-bottom:1px solid var(--line-soft);
+}
+.overview-editor-head strong{display:block;font-size:13px}
+.overview-editor-head span{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+.overview-close{
+  min-width:34px;
+  min-height:34px;
+  padding:4px;
+  font-size:20px;
+  line-height:1;
+}
+.overview-editor-list{
+  overflow:auto;
+  padding:8px;
+}
+.overview-choice{
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr) auto;
+  align-items:center;
+  gap:9px;
+  min-height:48px;
+  padding:7px 8px;
+  border:1px solid transparent;
+  border-radius:10px;
+}
+.overview-choice:hover{background:var(--panel2)}
+.overview-choice .handle{color:var(--muted);font-size:16px;cursor:grab;text-align:center}
+.overview-choice .copy{min-width:0}
+.overview-choice .copy strong{display:block;font-size:11px}
+.overview-choice .copy small{display:block;font-size:8px;color:var(--muted);margin-top:2px;line-height:1.35}
+.overview-choice input{width:17px;height:17px}
+.overview-editor-foot{
+  border-top:1px solid var(--line-soft);
+}
+@media(max-width:600px){
+  .overview-editor-backdrop{padding:10px}
+}
+
 </style>
 </head>
 <body>
@@ -852,51 +943,53 @@ select{
  <span>Last source update <strong id="sourceUpdate">—</strong></span>
 </div>
 
-<div class="category-overview">
- <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span id="gamingTargetLabel">PresentMon frame pipeline</span></div><div class="cat-metrics">
-  <div class="cat-metric"><div class="k">FPS</div><div class="v" id="ovFps">—</div></div>
-  <div class="cat-metric"><div class="k">Frame time</div><div class="v" id="ovFt">—</div></div>
-  <div class="cat-metric"><div class="k">CPU busy</div><div class="v" id="ovCpuBusy">—</div></div>
-  <div class="cat-metric"><div class="k">CPU wait</div><div class="v" id="ovCpuWait">—</div></div>
-  <div class="cat-metric"><div class="k">GPU busy</div><div class="v" id="ovGpuBusy">—</div></div>
-  <div class="cat-metric"><div class="k">GPU wait</div><div class="v" id="ovGpuWait">—</div></div>
-  <div class="cat-metric"><div class="k">GPU latency</div><div class="v" id="ovGpuLatency">—</div></div>
-  <div class="cat-metric"><div class="k">Display latency</div><div class="v" id="ovDisplayLatency">—</div></div>
- </div></section>
- <section class="cat-panel"><div class="cat-head"><strong>GPU</strong><span>graphics</span></div><div class="cat-metrics">
-  <div class="cat-metric"><div class="k">Load</div><div class="v" id="ovGpu">—</div></div>
-  <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovGt">—</div></div>
-  <div class="cat-metric"><div class="k">Hotspot</div><div class="v" id="ovGhot">—</div></div>
-  <div class="cat-metric"><div class="k">Power</div><div class="v" id="ovGp">—</div></div>
-  <div class="cat-metric"><div class="k">Core clock</div><div class="v" id="ovGc">—</div></div>
-  <div class="cat-metric"><div class="k">Memory clock</div><div class="v" id="ovGmc">—</div></div>
-  <div class="cat-metric"><div class="k">Fan</div><div class="v" id="ovGfan">—</div></div>
-  <div class="cat-metric"><div class="k">Throttle / limit</div><div class="v" id="ovGthrottle">—</div></div>
- </div></section>
- <section class="cat-panel"><div class="cat-head"><strong>CPU</strong><span>processor + Ryzen limits</span></div><div class="cat-metrics">
-  <div class="cat-metric"><div class="k">Total usage</div><div class="v" id="ovCpu">—</div></div>
-  <div class="cat-metric"><div class="k">Max thread</div><div class="v" id="ovCpuMax">—</div></div>
-  <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovCt">—</div></div>
-  <div class="cat-metric"><div class="k">Package power</div><div class="v" id="ovCp">—</div></div>
-  <div class="cat-metric"><div class="k">Effective clock</div><div class="v" id="ovCc">—</div></div>
-  <div class="cat-metric" title="How close the CPU currently is to its configured thermal ceiling. This is NOT throttling time."><div class="k">Thermal limit</div><div class="v" id="ovThermalLimit">—</div></div>
-  <div class="cat-metric" title="Package Power Tracking limit utilization. 100% means the PPT budget has been reached."><div class="k">PPT limit</div><div class="v" id="ovPptLimit">—</div></div>
-  <div class="cat-metric" title="Thermal Design Current limit utilization."><div class="k">TDC limit</div><div class="v" id="ovTdcLimit">—</div></div>
-  <div class="cat-metric" title="Electrical Design Current limit utilization."><div class="k">EDC limit</div><div class="v" id="ovEdcLimit">—</div></div>
-  <div class="cat-metric" title="Hardware Thermal Control. ACTIVE means actual CPU thermal throttling was reported by this signal."><div class="k">Throttle HTC</div><div class="v" id="ovThrottleHtc">—</div></div>
-  <div class="cat-metric" title="CPU PROCHOT thermal throttling signal."><div class="k">PROCHOT CPU</div><div class="v" id="ovProchotCpu">—</div></div>
-  <div class="cat-metric" title="External PROCHOT signal. An external platform component can assert this signal."><div class="k">PROCHOT EXT</div><div class="v" id="ovProchotExt">—</div></div>
- </div></section>
- <section class="cat-panel"><div class="cat-head"><strong>Memory</strong><span>RAM / VRAM</span></div><div class="cat-metrics">
-  <div class="cat-metric"><div class="k">RAM load</div><div class="v" id="ovRamLoad">—</div></div>
-  <div class="cat-metric"><div class="k">RAM used</div><div class="v" id="ovRamUsed">—</div></div>
-  <div class="cat-metric"><div class="k">RAM available</div><div class="v" id="ovRamAvail">—</div></div>
-  <div class="cat-metric"><div class="k">Committed</div><div class="v" id="ovCommitted">—</div></div>
-  <div class="cat-metric"><div class="k">VRAM used</div><div class="v" id="ovVram">—</div></div>
-  <div class="cat-metric"><div class="k">VRAM load</div><div class="v" id="ovVramLoad">—</div></div>
-  <div class="cat-metric"><div class="k">Page file</div><div class="v" id="ovPageFile">—</div></div>
-  <div class="cat-metric"><div class="k">Memory errors</div><div class="v" id="ovMemErrors">—</div></div>
- </div></section>
+<div class="category-overview" id="overviewHost">
+ <section class="cat-panel" data-overview-category="gaming">
+  <div class="cat-head">
+   <strong>Gaming</strong>
+   <div class="cat-head-actions"><span id="gamingTargetLabel">PresentMon frame pipeline</span><button class="cat-edit" type="button" data-edit-overview="gaming">Edit</button></div>
+  </div>
+  <div class="cat-metrics" data-overview-metrics="gaming"></div>
+ </section>
+
+ <section class="cat-panel" data-overview-category="gpu">
+  <div class="cat-head">
+   <strong>GPU</strong>
+   <div class="cat-head-actions"><span>graphics</span><button class="cat-edit" type="button" data-edit-overview="gpu">Edit</button></div>
+  </div>
+  <div class="cat-metrics" data-overview-metrics="gpu"></div>
+ </section>
+
+ <section class="cat-panel" data-overview-category="cpu">
+  <div class="cat-head">
+   <strong>CPU</strong>
+   <div class="cat-head-actions"><span>processor</span><button class="cat-edit" type="button" data-edit-overview="cpu">Edit</button></div>
+  </div>
+  <div class="cat-metrics" data-overview-metrics="cpu"></div>
+ </section>
+
+ <section class="cat-panel" data-overview-category="memory">
+  <div class="cat-head">
+   <strong>Memory</strong>
+   <div class="cat-head-actions"><span>RAM / VRAM</span><button class="cat-edit" type="button" data-edit-overview="memory">Edit</button></div>
+  </div>
+  <div class="cat-metrics" data-overview-metrics="memory"></div>
+ </section>
+</div>
+
+<div class="overview-editor-backdrop hidden" id="overviewEditorBackdrop">
+ <div class="overview-editor" role="dialog" aria-modal="true" aria-labelledby="overviewEditorTitle">
+  <div class="overview-editor-head">
+   <div><strong id="overviewEditorTitle">Edit overview</strong><span id="overviewEditorSubtitle">Choose what appears in this summary panel.</span></div>
+   <button type="button" class="overview-close" id="overviewEditorClose" aria-label="Close">×</button>
+  </div>
+  <div class="overview-editor-list" id="overviewEditorList"></div>
+  <div class="overview-editor-foot">
+   <button type="button" id="overviewEditorReset">Reset defaults</button>
+   <span class="spacer"></span>
+   <button type="button" class="primary" id="overviewEditorDone">Done</button>
+  </div>
+ </div>
 </div>
 
 <div class="sectionhead">
@@ -1108,7 +1201,10 @@ const S={
  targetFps:(()=>{const v=localStorage.getItem('hpl-v62-target-fps');return v===null?60:Number(v)})(),
  pins:JSON.parse(localStorage.getItem('hpl-v5-pins')||localStorage.getItem('hpl-v4-pins')||'[]'),
  opts:JSON.parse(localStorage.getItem('hpl-v5-opts')||localStorage.getItem('hpl-v4-opts')||'{}'),
- pendingImport:null
+ pendingImport:null,
+ overviewEditing:null,
+ overviewDragKey:null,
+ overviewConfig:JSON.parse(localStorage.getItem('hpl-v67-overview')||'null')
 };
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
@@ -1119,7 +1215,8 @@ function save(){
  localStorage.setItem('hpl-v5-ft-source',S.ftPref||'');
  localStorage.setItem('hpl-v5-theme',S.themePref||'system');
  localStorage.setItem('hpl-v62-health-colors',S.healthColors?'1':'0');
- localStorage.setItem('hpl-v62-target-fps',String(S.targetFps||60));
+ localStorage.setItem('hpl-v62-target-fps',String(S.targetFps));
+ localStorage.setItem('hpl-v67-overview',JSON.stringify(S.overviewConfig));
 }
 function descriptor(r){return r?{sensor:r.Sensor||'',sensorOriginal:r.SensorOriginal||'',label:r.Label||'',labelOriginal:r.LabelOriginal||'',unit:r.Unit||''}:null}
 function resolveDescriptor(d){
@@ -1200,11 +1297,7 @@ function overviewReading(kind){
  const rs=S.latest?.Readings||[];
  const unit=r=>String(r.Unit||'').trim().toLowerCase();
  const txt=r=>readingText(r);
- const score=(r,tests)=>{
-   let s=0;
-   for(const [re,pts] of tests)if(re.test(txt(r)))s+=pts;
-   return s;
- };
+ const score=(r,tests)=>{let s=0;for(const [re,pts] of tests)if(re.test(txt(r)))s+=pts;return s};
  const pick=(tests,unitTests=[])=>{
    let best=null,bestScore=-Infinity;
    for(const r of rs){
@@ -1217,338 +1310,266 @@ function overviewReading(kind){
    }
    return best;
  };
-
  switch(kind){
-  case 'gpu':
-   return pick([[/\bgpu core load\b/,100],[/\bgpu utilization\b/,90],[/\bgpu load\b/,75]],[/^%$/,/percent/]);
-  case 'gt':
-   return pick([[/\bgpu temperature\b/,100],[/\bgpu.*core.*temperature\b/,95],[/\bgpu temp\b/,80],[/hot ?spot|junction/, -100]],[/°c/,/^c$/]);
-  case 'ghot':
-   return pick([[/gpu.*hot ?spot/,120],[/hot ?spot.*temperature/,110],[/gpu.*junction.*temperature/,105],[/junction temperature/,90]],[/°c/,/^c$/]);
-  case 'gp':
-   return pick([
-     [/\bgpu asic power\b/,130],[/\bgpu total board power\b/,125],[/\btotal board power\b/,120],
-     [/\bgpu board power\b/,115],[/\bgpu chip power\b/,110],[/\bgpu power\b/,105],
-     [/\bgraphics power\b/,95],[/\bgpu ppt\b/,80],[/\bppt\b/,35]
-   ],[/^w$/,/watt/]);
-  case 'gc':
-   return pick([[/\bgpu core clock\b/,120],[/\bgpu clock\b/,110],[/\bgraphics clock\b/,100],[/memory/, -100]],[/mhz/,/ghz/]);
-  case 'gmc':
-   return pick([[/\bgpu memory clock\b/,125],[/\bmemory clock\b/,80],[/\bvram.*clock\b/,100]],[/mhz/,/ghz/]);
-  case 'gfan':
-   return pick([[/\bgpu fan\b/,120],[/\bfan.*gpu\b/,110],[/\bgpu.*fan speed\b/,125]],[/rpm/,/^%$/,/percent/]);
-  case 'cpumax':
-   return pick([[/\bmax cpu thread usage\b/,140],[/\bmaximum cpu thread usage\b/,135],[/\bmax cpu core usage\b/,125],[/\bmaximum cpu core usage\b/,120]],[/^%$/,/percent/]);
-  case 'cpu':
-   return pick([[/\btotal cpu usage\b/,130],[/\bcpu total\b/,110],[/\bcpu usage\b/,70]],[/^%$/,/percent/]);
-  case 'ct':
-   return pick([[/\bcpu tctl tdie\b/,135],[/\bcpu package temperature\b/,130],[/\bcpu package\b/,80],[/\bcpu temperature\b/,105]],[/°c/,/^c$/]);
-  case 'cp':
-   return pick([[/\bcpu package power\b/,140],[/\bpackage power\b/,120],[/\bcpu power\b/,90]],[/^w$/,/watt/]);
-  case 'cc':
-   return pick([[/\bcore effective clocks.*avg\b/,140],[/\baverage effective clock\b/,135],[/\bcore effective clock\b/,100]],[/mhz/,/ghz/]);
-  case 'cpuppt':
-   return pick([[/\bcpu ppt\b/,130],[/\bppt limit\b/,120],[/\bpackage power limit\b/,100],[/\bcpu power limit\b/,95]],[/^%$/,/percent/,/^w$/,/watt/]);
-  case 'thermallimit':
-   return pick([[/^thermal limit$/,170],[/\bthermal limit\b/,120]],[/^%$/,/percent/]);
-  case 'pptlimit':
-   return pick([[/^cpu ppt limit$/,180],[/\bcpu ppt limit\b/,160],[/\bppt limit\b/,120]],[/^%$/,/percent/]);
-  case 'tdclimit':
-   return pick([[/^cpu tdc limit$/,180],[/\bcpu tdc limit\b/,160],[/\btdc limit\b/,120]],[/^%$/,/percent/]);
-  case 'edclimit':
-   return pick([[/^cpu edc limit$/,180],[/\bcpu edc limit\b/,160],[/\bedc limit\b/,120]],[/^%$/,/percent/]);
-  case 'htc':
-   return pick([[/thermal throttling htc/,200]]);
-  case 'prochotcpu':
-   return pick([[/thermal throttling prochot cpu/,200]]);
-  case 'prochotext':
-   return pick([[/thermal throttling prochot ext/,200]]);
-  case 'ramload':
-   return pick([[/\bphysical memory load\b/,130],[/\bram load\b/,110],[/\bmemory load\b/,75]],[/^%$/,/percent/]);
-  case 'ramused':
-   return pick([[/\bphysical memory used\b/,130],[/\bram used\b/,110],[/\bmemory used\b/,70]],[/mb/,/gb/]);
-  case 'ramavail':
-   return pick([[/\bavailable physical memory\b/,140],[/\bphysical memory available\b/,135],[/\bavailable memory\b/,90]],[/mb/,/gb/]);
-  case 'committed':
-   return pick([[/\bcommitted memory\b/,130],[/\bcommit charge\b/,100]],[/mb/,/gb/,/^%$/,/percent/]);
-  case 'vram':
-   return pick([[/\bgpu memory allocated\b/,140],[/\bdedicated memory usage\b/,130],[/\bgpu memory used\b/,125],[/\bvram used\b/,120]],[/mb/,/gb/]);
-  case 'vramload':
-   return pick([[/\bgpu memory load\b/,140],[/\bvram.*load\b/,130],[/\bdedicated memory.*usage\b/,80]],[/^%$/,/percent/]);
-  case 'pagefile':
-   return pick([[/\bpage file usage\b/,140],[/\bpagefile usage\b/,135],[/\bpage file\b/,80]],[/^%$/,/percent/,/mb/,/gb/]);
-  case 'memerrors':
-   return pick([[/\bmemory errors\b/,130],[/\becc.*error\b/,120],[/\bwhea.*memory\b/,110]]);
-  case 'cpubusy':
-   return pick([[/\bcpu busy\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'cpuwait':
-   return pick([[/\bcpu wait\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gbusy':
-   return pick([[/\bgpu busy\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gpuwait':
-   return pick([[/\bgpu wait\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gpulatency':
-   return pick([[/\bgpu latency\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'displaylatency':
-   return pick([[/\bdisplay latency\b/,140],[/\brender present latency\b/,130],[/\brender latency\b/,120],[/\bpresent latency\b/,110]],[/^ms$/,/milliseconds/]);
+  case 'gpu': return pick([[/\bgpu core load\b/,100],[/\bgpu utilization\b/,90],[/\bgpu load\b/,75]],[/^%$/,/percent/]);
+  case 'gt': return pick([[/\bgpu temperature\b/,100],[/\bgpu.*core.*temperature\b/,95],[/\bgpu temp\b/,80],[/hot ?spot|junction/,-100]],[/°c/,/^c$/]);
+  case 'ghot': return pick([[/gpu.*hot ?spot/,120],[/hot ?spot.*temperature/,110],[/gpu.*junction.*temperature/,105],[/junction temperature/,90]],[/°c/,/^c$/]);
+  case 'gp': return pick([[/\bgpu asic power\b/,130],[/\bgpu total board power\b/,125],[/\btotal board power\b/,120],[/\bgpu board power\b/,115],[/\bgpu chip power\b/,110],[/\bgpu power\b/,105],[/\bgraphics power\b/,95],[/\bgpu ppt\b/,80]],[/^w$/,/watt/]);
+  case 'gc': return pick([[/\bgpu core clock\b/,120],[/\bgpu clock\b/,110],[/\bgraphics clock\b/,100],[/memory/,-100]],[/mhz/,/ghz/]);
+  case 'gmc': return pick([[/\bgpu memory clock\b/,125],[/\bmemory clock\b/,80],[/\bvram.*clock\b/,100]],[/mhz/,/ghz/]);
+  case 'gfan': return pick([[/\bgpu fan\b/,120],[/\bfan.*gpu\b/,110],[/\bgpu.*fan speed\b/,125]],[/rpm/,/^%$/,/percent/]);
+  case 'cpumax': return pick([[/\bmax cpu thread usage\b/,140],[/\bmaximum cpu thread usage\b/,135],[/\bmax cpu core usage\b/,125],[/\bmaximum cpu core usage\b/,120]],[/^%$/,/percent/]);
+  case 'cpu': return pick([[/\btotal cpu usage\b/,130],[/\bcpu total\b/,110],[/\bcpu usage\b/,70]],[/^%$/,/percent/]);
+  case 'ct': return pick([[/\bcpu tctl tdie\b/,135],[/\bcpu package temperature\b/,130],[/\bcpu package\b/,80],[/\bcpu temperature\b/,105]],[/°c/,/^c$/]);
+  case 'cp': return pick([[/\bcpu package power\b/,140],[/\bpackage power\b/,120],[/\bcpu power\b/,90]],[/^w$/,/watt/]);
+  case 'cc': return pick([[/\bcore effective clocks.*avg\b/,140],[/\baverage effective clock\b/,135],[/\bcore effective clock\b/,100]],[/mhz/,/ghz/]);
+  case 'thermallimit': return pick([[/^thermal limit$/,170],[/\bthermal limit\b/,120]],[/^%$/,/percent/]);
+  case 'pptlimit': return pick([[/^cpu ppt limit$/,180],[/\bcpu ppt limit\b/,160],[/\bppt limit\b/,120]],[/^%$/,/percent/]);
+  case 'tdclimit': return pick([[/^cpu tdc limit$/,180],[/\bcpu tdc limit\b/,160],[/\btdc limit\b/,120]],[/^%$/,/percent/]);
+  case 'edclimit': return pick([[/^cpu edc limit$/,180],[/\bcpu edc limit\b/,160],[/\bedc limit\b/,120]],[/^%$/,/percent/]);
+  case 'htc': return pick([[/thermal throttling htc/,200]]);
+  case 'prochotcpu': return pick([[/thermal throttling prochot cpu/,200]]);
+  case 'prochotext': return pick([[/thermal throttling prochot ext/,200]]);
+  case 'ramload': return pick([[/\bphysical memory load\b/,130],[/\bram load\b/,110],[/\bmemory load\b/,75]],[/^%$/,/percent/]);
+  case 'ramused': return pick([[/\bphysical memory used\b/,130],[/\bram used\b/,110],[/\bmemory used\b/,70]],[/mb/,/gb/]);
+  case 'ramavail': return pick([[/\bavailable physical memory\b/,140],[/\bphysical memory available\b/,135],[/\bavailable memory\b/,90]],[/mb/,/gb/]);
+  case 'committed': return pick([[/\bcommitted memory\b/,130],[/\bcommit charge\b/,100]],[/mb/,/gb/,/^%$/,/percent/]);
+  case 'vram': return pick([[/\bgpu memory allocated\b/,140],[/\bdedicated memory usage\b/,130],[/\bgpu memory used\b/,125],[/\bvram used\b/,120]],[/mb/,/gb/]);
+  case 'vramload': return pick([[/\bgpu memory load\b/,140],[/\bvram.*load\b/,130],[/\bdedicated memory.*usage\b/,80]],[/^%$/,/percent/]);
+  case 'pagefile': return pick([[/\bpage file usage\b/,140],[/\bpagefile usage\b/,135],[/\bpage file\b/,80]],[/^%$/,/percent/,/mb/,/gb/]);
+  case 'memerrors': return pick([[/\bmemory errors\b/,130],[/\becc.*error\b/,120],[/\bwhea.*memory\b/,110]]);
+  case 'cpubusy': return pick([[/\bcpu busy\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'cpuwait': return pick([[/\bcpu wait\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gbusy': return pick([[/\bgpu busy\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gpuwait': return pick([[/\bgpu wait\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'gpulatency': return pick([[/\bgpu latency\b/,130]],[/^ms$/,/milliseconds/]);
+  case 'displaylatency': return pick([[/\bdisplay latency\b/,140],[/\brender present latency\b/,130],[/\brender latency\b/,120],[/\bpresent latency\b/,110]],[/^ms$/,/milliseconds/]);
  }
  return null;
 }
 
-function limitStatus(scope,type){
+function actualCpuThrottleStatus(){
+ const signals=[
+   overviewReading('htc'),
+   overviewReading('prochotcpu'),
+   overviewReading('prochotext')
+ ].filter(Boolean);
+ if(!signals.length)return {display:'—',level:null,reason:'No supported CPU thermal-throttling status sensor found',reading:null};
+ const active=signals.find(r=>n(r.Value)!==null&&n(r.Value)>0);
+ if(active)return {display:'ACTIVE',level:'bad',reason:`${active.Label} is active`,reading:active};
+ return {display:'OK',level:null,reason:'HTC / PROCHOT thermal-protection signals are inactive',reading:signals[0]};
+}
+
+function actualGpuThrottleStatus(){
  const rs=S.latest?.Readings||[];
- const scopeRe=scope==='gpu'?/\bgpu\b|graphics/:/\bcpu\b|package|prochot|ppt|tdc|edc/;
- const typeRe=type==='thermal'
-   ?/thermal thrott|thermal limit|performance limit thermal|prochot|critical temperature/
-   :/power thrott|power limit|performance limit power|ppt limit|power reporting deviation/;
+ const thermal=rs.filter(r=>/\bgpu\b|graphics/.test(readingText(r))&&/thermal thrott|performance limit thermal|thermal limit active/.test(readingText(r)));
+ const active=thermal.find(r=>n(r.Value)!==null&&n(r.Value)>0);
+ if(active)return {display:'ACTIVE',level:'bad',reason:`${active.Label} is active`,reading:active};
+ if(thermal.length)return {display:'OK',level:null,reason:'GPU thermal-protection/throttling signal is inactive',reading:thermal[0]};
+ return {display:'—',level:null,reason:'No explicit GPU thermal-throttling status sensor found',reading:null};
+}
 
- const candidates=rs.filter(r=>scopeRe.test(readingText(r))&&typeRe.test(readingText(r)));
- if(!candidates.length)return null;
+const OVERVIEW_DEFS={
+ gaming:[
+  {key:'fps',label:'FPS',desc:'Current PresentMon FPS',get:()=>selectedSource('fps')},
+  {key:'frametime',label:'Frame time',desc:'Frame delivery time',get:()=>selectedSource('ft')},
+  {key:'cpubusy',label:'CPU busy',desc:'CPU work time per sampled frame',kind:'cpubusy'},
+  {key:'cpuwait',label:'CPU wait',desc:'CPU wait time',kind:'cpuwait'},
+  {key:'gpubusy',label:'GPU busy',desc:'GPU work time per sampled frame',kind:'gbusy'},
+  {key:'gpuwait',label:'GPU wait',desc:'GPU idle/wait time',kind:'gpuwait'},
+  {key:'gpulatency',label:'GPU latency',desc:'PresentMon GPU latency',kind:'gpulatency'},
+  {key:'displaylatency',label:'Display latency',desc:'PresentMon display latency',kind:'displaylatency'}
+ ],
+ gpu:[
+  {key:'load',label:'Load',desc:'GPU core utilization',kind:'gpu'},
+  {key:'temperature',label:'Temperature',desc:'GPU core temperature',kind:'gt'},
+  {key:'hotspot',label:'Hotspot',desc:'GPU hotspot / junction temperature',kind:'ghot'},
+  {key:'power',label:'Power',desc:'ASIC / board / chip power',kind:'gp'},
+  {key:'coreclock',label:'Core clock',desc:'GPU core clock',kind:'gc'},
+  {key:'memoryclock',label:'Memory clock',desc:'VRAM clock',kind:'gmc'},
+  {key:'fan',label:'Fan',desc:'GPU fan speed',kind:'gfan'},
+  {key:'throttling',label:'Thermal throttling',desc:'Actual thermal-protection/throttle state',status:actualGpuThrottleStatus}
+ ],
+ cpu:[
+  {key:'usage',label:'Total usage',desc:'Total CPU utilization',kind:'cpu'},
+  {key:'maxthread',label:'Max thread',desc:'Most-loaded CPU thread/core',kind:'cpumax'},
+  {key:'temperature',label:'Temperature',desc:'CPU package/Tctl temperature',kind:'ct'},
+  {key:'power',label:'Package power',desc:'CPU package power',kind:'cp'},
+  {key:'clock',label:'Effective clock',desc:'Effective CPU clock',kind:'cc'},
+  {key:'throttling',label:'Thermal throttling',desc:'Actual HTC / PROCHOT protection state',status:actualCpuThrottleStatus},
+  {key:'thermallimit',label:'Thermal limit',desc:'Proximity to thermal limit; not throttling',kind:'thermallimit'},
+  {key:'ppt',label:'PPT limit',desc:'Package Power Tracking utilization',kind:'pptlimit'},
+  {key:'tdc',label:'TDC limit',desc:'Sustained current-limit utilization',kind:'tdclimit'},
+  {key:'edc',label:'EDC limit',desc:'Peak current-limit utilization',kind:'edclimit'}
+ ],
+ memory:[
+  {key:'ramload',label:'RAM load',desc:'Physical memory utilization',kind:'ramload'},
+  {key:'ramused',label:'RAM used',desc:'Used physical memory',kind:'ramused'},
+  {key:'ramavail',label:'RAM available',desc:'Available physical memory',kind:'ramavail'},
+  {key:'committed',label:'Committed',desc:'Committed memory',kind:'committed'},
+  {key:'vramused',label:'VRAM used',desc:'Dedicated GPU memory used',kind:'vram'},
+  {key:'vramload',label:'VRAM load',desc:'Video memory pressure',kind:'vramload'},
+  {key:'pagefile',label:'Page file',desc:'Page-file usage',kind:'pagefile'},
+  {key:'memerrors',label:'Memory errors',desc:'ECC/WHEA memory errors when exposed',kind:'memerrors'}
+ ]
+};
 
- // Prefer active boolean/status readings, then percentage limit readings.
- for(const r of candidates){
-   const v=n(r.Value),u=String(r.Unit||'').trim().toLowerCase();
-   if(v===null)continue;
-   if((u===''||u==='yes/no'||u==='bool'||u==='boolean')&&v>0)
-     return {display:'ACTIVE',level:'bad',reason:r.Label||'Limit active',reading:r};
+const OVERVIEW_DEFAULTS={
+ gaming:['fps','frametime','cpubusy','cpuwait','gpubusy','gpuwait','gpulatency','displaylatency'],
+ gpu:['load','temperature','hotspot','power','coreclock','memoryclock','fan','throttling'],
+ cpu:['usage','maxthread','temperature','power','clock','throttling','ppt'],
+ memory:['ramload','ramused','ramavail','committed','vramused','vramload','pagefile']
+};
+
+function ensureOverviewConfig(){
+ if(!S.overviewConfig||typeof S.overviewConfig!=='object')S.overviewConfig={};
+ for(const cat of Object.keys(OVERVIEW_DEFS)){
+   const allowed=new Set(OVERVIEW_DEFS[cat].map(x=>x.key));
+   let arr=Array.isArray(S.overviewConfig[cat])?S.overviewConfig[cat].filter(k=>allowed.has(k)):[...OVERVIEW_DEFAULTS[cat]];
+   // Keep unique values.
+   arr=[...new Set(arr)];
+   S.overviewConfig[cat]=arr;
  }
- const pct=candidates.find(r=>/^%$|percent/.test(String(r.Unit||'').trim().toLowerCase()));
- if(pct){
-   const v=n(pct.Value);
-   if(v!==null){
-     return {
-       display:fmt(v,pct.Unit),
-       level:v>=100?'bad':v>=90?'warn':null,
-       reason:v>=100?'Limit at or above 100%':v>=90?'Limit above 90%':null,
-       reading:pct
-     };
-   }
- }
-
- const any=candidates[0],v=n(any.Value);
- if(v!==null&&v>0)return {display:fmt(v,any.Unit),level:'bad',reason:any.Label||'Limit active',reading:any};
- return {display:'OK',level:null,reason:null,reading:any};
 }
 
-function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
-function addSample(k,v){
- v=n(v);if(v===null||!k)return;
- if(!S.histories.has(k))S.histories.set(k,[]);
- const a=S.histories.get(k),now=Date.now();a.push({t:now,v});
- const keep=60*60*1000;while(a.length&&now-a[0].t>keep)a.shift();
-}
-function sampleNewSource(){
- if(!S.latest?.Ok)return;
- updateSourceState();
- const token=String(S.latest.PollTimeUnix||'');
- if(token&&token===S.lastSourceToken)return;
- S.lastSourceToken=token;S.samples++;
- const keys=new Set(S.pins);
- if(S.fpsKey)keys.add(S.fpsKey);if(S.ftKey)keys.add(S.ftKey);
- for(const k of keys){const r=reading(k);if(r)addSample(k,r.Value)}
- $('sampleCount').textContent=S.samples;
-}
-function rolling(arr,sec){
- if(!arr.length)return arr;const out=[];let left=0,sum=0;
- for(let i=0;i<arr.length;i++){sum+=arr[i].v;while(arr[i].t-arr[left].t>sec*1000){sum-=arr[left].v;left++}out.push({t:arr[i].t,v:sum/(i-left+1)})}
- return out;
+function overviewDef(cat,key){return (OVERVIEW_DEFS[cat]||[]).find(x=>x.key===key)||null}
+
+function overviewMetricHtml(cat,key){
+ const def=overviewDef(cat,key);if(!def)return '';
+ return `<div class="cat-metric" draggable="true" data-overview-item="${cat}:${key}" title="${esc(def.desc||'')}"><div class="k">${esc(def.label)}</div><div class="v" data-overview-value="${cat}:${key}">—</div></div>`;
 }
 
-function pin(k){if(!reading(k)||S.pins.includes(k))return;S.pins.push(k);ensureOpt(k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
-function unpin(k){S.pins=S.pins.filter(x=>x!==k);save();syncPinsStructure();syncGroupStars()}
-function reorder(k,before){
- const a=S.pins.filter(x=>x!==k);const i=before?a.indexOf(before):-1;if(i<0)a.push(k);else a.splice(i,0,k);S.pins=a;save();syncPinsStructure();updateDynamic()
-}
-function setMode(k,v){ensureOpt(k).mode=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
-function setGraph(k,v){ensureOpt(k).graph=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
-function setSmooth(k,v){ensureOpt(k).smooth=v;save();drawOneCard(document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`),k)}
-function toggleControls(k){
- const o=ensureOpt(k);o.controlsVisible=!o.controlsVisible;save();
- const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);
- if(c)applyCardPresentation(c,k);
-}
-function applyAllControls(show){
- for(const k of S.pins)ensureOpt(k).controlsVisible=show;
- save();
- document.querySelectorAll('.pin-card').forEach(c=>applyCardPresentation(c,c.dataset.key));
-}
-window.__unpin=unpin;window.__setMode=setMode;window.__setGraph=setGraph;window.__setSmooth=setSmooth;window.__toggleControls=toggleControls;
-
-function cardHtml(k,r){
- const o=ensureOpt(k),cat=classify(r);
- return `<article class="pin-card" data-key="${k}" draggable="true">
-  <div class="pin-head"><div class="pin-left"><div class="draghandle" title="Drag to reorder">⠿</div><div class="pin-title"><div class="l">${esc(r.Label)}</div><div class="g">${esc(r.Sensor)}</div><span class="catbadge">${cat}</span></div></div>
-   <div class="pin-actions">
-    <button class="iconbtn" data-controls-toggle title="Show / hide card controls" onclick="__toggleControls('${k}')">⋯</button>
-    <button class="iconbtn" onclick="__unpin('${k}')">Unpin</button>
-   </div></div>
-  <div class="pin-primary"><div><div class="big" data-pin-primary>—</div><div class="smallmode" data-pin-mode>Current</div></div></div>
-  <div class="statgrid">
-   <div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur">—</div></div>
-   <div class="sbox"><div class="k">Session min</div><div class="v" data-pin-stat="min">—</div></div>
-   <div class="sbox"><div class="k">Session avg</div><div class="v" data-pin-stat="avg">—</div></div>
-   <div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max">—</div></div>
-  </div>
-  <div class="chartbox"><canvas></canvas><div class="chart-legend" data-chartlegend>0 samples</div></div>
-  <div class="pin-foot" data-card-controls>
-   <span class="label-mini">Large value</span>
-   <select data-mode onchange="__setMode('${k}',this.value)"><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session avg</option><option value="max">Session max</option></select>
-   <label class="check"><input type="checkbox" data-graph onchange="__setGraph('${k}',this.checked)"> graph</label>
-   <label class="check"><input type="checkbox" data-smooth onchange="__setSmooth('${k}',this.checked)"> 5s avg</label>
-  </div>
- </article>`;
-}
-function applyCardPresentation(card,k){
- const o=ensureOpt(k);
- card.querySelector('[data-mode]').value=o.mode||'current';
- card.querySelector('[data-graph]').checked=o.graph!==false;
- card.querySelector('[data-smooth]').checked=!!o.smooth;
- card.querySelector('.chartbox').classList.toggle('hidden',o.graph===false);
- const controls=card.querySelector('[data-card-controls]');
- if(controls)controls.classList.toggle('hidden',o.controlsVisible===false);
- const toggle=card.querySelector('[data-controls-toggle]');
- if(toggle){
-   toggle.title=o.controlsVisible===false?'Show card controls':'Hide card controls';
-   toggle.setAttribute('aria-pressed',o.controlsVisible===false?'true':'false');
+function renderOverviewStructure(){
+ ensureOverviewConfig();
+ for(const cat of Object.keys(OVERVIEW_DEFS)){
+   const host=document.querySelector(`[data-overview-metrics="${cat}"]`);if(!host)continue;
+   const wanted=S.overviewConfig[cat]||[];
+   const signature=wanted.join('|');
+   if(host.dataset.signature===signature)continue;
+   host.dataset.signature=signature;
+   host.innerHTML=wanted.map(k=>overviewMetricHtml(cat,k)).join('')||'<div class="cat-metric"><div class="k">No metrics</div><div class="v">—</div></div>';
  }
- card.querySelector('[data-pin-mode]').textContent=o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current';
-}
-function bindCardDnD(card){
- card.ondragstart=e=>{S.draggingKey=card.dataset.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',S.draggingKey)};
- card.ondragend=()=>{S.draggingKey=null;card.classList.remove('dragging');document.querySelectorAll('.pin-card').forEach(x=>x.classList.remove('drag-target'))};
- card.ondragover=e=>{e.preventDefault();if(S.draggingKey&&S.draggingKey!==card.dataset.key)card.classList.add('drag-target')};
- card.ondragleave=()=>card.classList.remove('drag-target');
- card.ondrop=e=>{e.preventDefault();card.classList.remove('drag-target');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(k&&S.pins.includes(k))reorder(k,card.dataset.key);else if(k)pin(k)}
-}
-function syncPinsStructure(){
- const host=$('pinHost'),valid=S.pins.filter(k=>reading(k));
- if(!valid.length){host.className='';host.innerHTML='<div class="empty">Nothing pinned. Use an essential preset, click ★, or drag a sensor row here.</div>';return}
- host.className='pingrid';
- host.querySelectorAll(':scope > .empty').forEach(x=>x.remove());
- const existing=new Map([...host.querySelectorAll('.pin-card')].map(c=>[c.dataset.key,c]));
- let cursor=host.firstElementChild;
- for(const k of valid){
-  const r=reading(k);let c=existing.get(k);
-  if(!c){
-   const t=document.createElement('template');t.innerHTML=cardHtml(k,r).trim();c=t.content.firstElementChild;
-   bindCardDnD(c);bindChartHover(c.querySelector('canvas'),k);
-  }
-  // Move a card only when the requested order actually changed.
-  if(c!==cursor)host.insertBefore(c,cursor);
-  cursor=c.nextElementSibling;
-  applyCardPresentation(c,k);existing.delete(k);
- }
- existing.forEach(c=>c.remove());
+ bindOverviewDnD();
 }
 
-function graphColors(){
- const cs=getComputedStyle(document.documentElement);
- return {grid:cs.getPropertyValue('--chart-grid').trim(),line:cs.getPropertyValue('--chart-line').trim(),hover:cs.getPropertyValue('--chart-hover').trim(),muted:cs.getPropertyValue('--muted').trim(),text:cs.getPropertyValue('--text').trim()}
-}
-function drawCanvas(canvas,k,ratioOverride=null){
- if(!canvas)return;const r=reading(k),o=ensureOpt(k);if(!r||o.graph===false)return;
- const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));
- if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
- const c=canvas.getContext('2d');c.clearRect(0,0,w,h);
- const seconds=Number($('window').value)||300,cut=Date.now()-seconds*1000;
- let pts=(S.histories.get(k)||[]).filter(p=>p.t>=cut&&Number.isFinite(p.v));if(o.smooth)pts=rolling(pts,5);if(pts.length<2){S.hoverCharts.set(k,{pts,plot:null});return}
- const vals=pts.map(p=>p.v);let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.10;lo-=pad;hi+=pad;
- const L=4*dpr,R=w-4*dpr,T=4*dpr,B=h-14*dpr,colors=graphColors();
- c.strokeStyle=colors.grid;c.lineWidth=1*dpr;for(let i=0;i<3;i++){const y=T+(B-T)*i/2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()}
- const t0=pts[0].t,t1=pts.at(-1).t||t0+1;c.strokeStyle=colors.line;c.lineWidth=1.6*dpr;c.beginPath();
- pts.forEach((p,i)=>{const x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
- c.font=`${8*dpr}px Segoe UI`;c.fillStyle=colors.muted;c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);
- const ratio=ratioOverride!==null?ratioOverride:S.hoverRatio.get(k);
- if(ratio!==undefined&&ratio!==null){
-  const target=t0+(t1-t0)*ratio;let bi=0,bd=Infinity;pts.forEach((p,i)=>{const d=Math.abs(p.t-target);if(d<bd){bd=d;bi=i}});
-  const p=pts[bi],x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);
-  c.strokeStyle=colors.hover;c.lineWidth=1*dpr;c.beginPath();c.moveTo(x,T);c.lineTo(x,B);c.stroke();c.fillStyle=colors.text;c.beginPath();c.arc(x,y,3*dpr,0,Math.PI*2);c.fill();
+function resolveOverviewValue(def){
+ if(!def)return {display:'—',reading:null,value:null,status:null};
+ if(def.status){
+   const s=def.status();
+   return {display:s.display,reading:s.reading,value:s.reading?n(s.reading.Value):null,status:s};
  }
- S.hoverCharts.set(k,{pts,plot:{L,R,T,B,t0,t1,lo,hi}});
-}
-function bindChartHover(canvas,k){
- canvas.onpointermove=e=>{
-  const rect=canvas.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(e.clientX-rect.left)/Math.max(1,rect.width)));S.hoverRatio.set(k,ratio);drawCanvas(canvas,k,ratio);
-  const meta=S.hoverCharts.get(k);if(!meta?.pts?.length)return;const target=meta.plot.t0+(meta.plot.t1-meta.plot.t0)*ratio;let best=meta.pts[0],bd=Infinity;
-  for(const p of meta.pts){const d=Math.abs(p.t-target);if(d<bd){bd=d;best=p}}
-  const r=reading(k),tip=$('tooltip');tip.querySelector('.time').textContent=new Date(best.t).toLocaleTimeString();tip.querySelector('.val').textContent=fmt(best.v,r?.Unit||'');tip.style.display='block';
-  let tx=e.clientX+12,ty=e.clientY+12;if(tx+160>innerWidth)tx=e.clientX-165;if(ty+75>innerHeight)ty=e.clientY-80;tip.style.left=tx+'px';tip.style.top=ty+'px';
- };
- canvas.onpointerleave=()=>{S.hoverRatio.delete(k);$('tooltip').style.display='none';drawCanvas(canvas,k,null)}
-}
-function drawOneCard(card,k){
- const r=reading(k);if(!card||!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);
- const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;
- const primaryEl=card.querySelector('[data-pin-primary]');
- primaryEl.textContent=displayReading(r,primary);applyHealth(primaryEl,r,primary);
- for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]]){
-   const el=card.querySelector(`[data-pin-stat="${f}"]`);
-   el.textContent=displayReading(r,v);applyHealth(el,r,v);
- }
- card.querySelector('[data-chartlegend]').textContent=`${st.count} source samples${o.smooth?' • 5s rolling average':''}`;
- if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null);
-}
-function updatePins(){
- // IMPORTANT: never rebuild, append or move card DOM nodes during a telemetry poll.
- // Native <select> popups are closed by browsers when their element is moved/reinserted.
- // Card structure is synchronized only when pins/topology/order actually changes.
- document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key))
+ const r=def.get?def.get():overviewReading(def.kind);
+ return {display:r?displayReading(r,r.Value):'—',reading:r,value:r?n(r.Value):null,status:null};
 }
 
 function updateOverview(){
- const fps=selectedSource('fps'),ft=selectedSource('ft');
- const vals={
-  ovFps:fps,ovFt:ft,
-  ovCpuBusy:overviewReading('cpubusy'),ovCpuWait:overviewReading('cpuwait'),
-  ovGpuBusy:overviewReading('gbusy'),ovGpuWait:overviewReading('gpuwait'),
-  ovGpuLatency:overviewReading('gpulatency'),ovDisplayLatency:overviewReading('displaylatency'),
-  ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGhot:overviewReading('ghot'),ovGp:overviewReading('gp'),
-  ovGc:overviewReading('gc'),ovGmc:overviewReading('gmc'),ovGfan:overviewReading('gfan'),
-  ovCpu:overviewReading('cpu'),ovCpuMax:overviewReading('cpumax'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),
-  ovCc:overviewReading('cc'),
-  ovThermalLimit:overviewReading('thermallimit'),ovPptLimit:overviewReading('pptlimit'),
-  ovTdcLimit:overviewReading('tdclimit'),ovEdcLimit:overviewReading('edclimit'),
-  ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovRamAvail:overviewReading('ramavail'),
-  ovCommitted:overviewReading('committed'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload'),
-  ovPageFile:overviewReading('pagefile'),ovMemErrors:overviewReading('memerrors')
- };
- for(const [id,r] of Object.entries(vals)){
-   const el=$(id);
-   el.textContent=r?fmt(r.Value,r.Unit):'—';
-   if(r)applyHealth(el,r,r.Value);else clearHealth(el);
- }
-
- const gpuThermal=limitStatus('gpu','thermal'),gpuPower=limitStatus('gpu','power');
- const gpuStatus=gpuThermal?.level==='bad'?gpuThermal:gpuPower?.level==='bad'?gpuPower:gpuThermal?.level==='warn'?gpuThermal:gpuPower?.level==='warn'?gpuPower:null;
- const ge=$('ovGthrottle');
- if(gpuStatus){
-   ge.textContent=gpuStatus.display;clearHealth(ge);
-   ge.classList.add(gpuStatus.level==='bad'?'health-bad':'health-warn');
-   if(gpuStatus.reason){ge.title=gpuStatus.reason;ge.dataset.healthTitle='1'}
- }else if(gpuThermal||gpuPower){ge.textContent='OK';clearHealth(ge)}
- else{ge.textContent='—';clearHealth(ge)}
-
- const cpuStatuses={
-   ovThrottleHtc:overviewReading('htc'),
-   ovProchotCpu:overviewReading('prochotcpu'),
-   ovProchotExt:overviewReading('prochotext')
- };
- for(const [id,r] of Object.entries(cpuStatuses)){
-   const el=$(id);clearHealth(el);
-   if(!r){el.textContent='—';continue}
-   const active=n(r.Value)!==null&&n(r.Value)>0;
-   el.textContent=active?'ACTIVE':'OK';
-   if(active){
-     el.classList.add('health-bad');
-     el.title=`${r.Label}: active`;
-     el.dataset.healthTitle='1';
+ renderOverviewStructure();
+ for(const cat of Object.keys(OVERVIEW_DEFS)){
+   for(const key of S.overviewConfig[cat]||[]){
+     const def=overviewDef(cat,key),el=document.querySelector(`[data-overview-value="${cat}:${key}"]`);
+     if(!el||!def)continue;
+     clearHealth(el);
+     const x=resolveOverviewValue(def);
+     el.textContent=x.display;
+     if(x.status){
+       if(x.status.level){
+         el.classList.add(x.status.level==='bad'?'health-bad':'health-warn');
+         if(x.status.reason){el.title=x.status.reason;el.dataset.healthTitle='1'}
+       }else if(x.status.reason){el.title=x.status.reason;el.dataset.healthTitle='1'}
+     }else if(x.reading)applyHealth(el,x.reading,x.value);
    }
  }
-
  $('gamingTargetLabel').textContent=Number(S.targetFps)>0
    ?`PresentMon frame pipeline • target ${S.targetFps} FPS`
    :'PresentMon frame pipeline • target off';
 }
+
+function bindOverviewDnD(){
+ document.querySelectorAll('[data-overview-item]').forEach(el=>{
+   el.ondragstart=e=>{
+     S.overviewDragKey=el.dataset.overviewItem;
+     el.classList.add('overview-dragging');
+     e.dataTransfer.setData('text/plain',S.overviewDragKey);
+     e.dataTransfer.effectAllowed='move';
+   };
+   el.ondragend=()=>{
+     S.overviewDragKey=null;
+     document.querySelectorAll('.cat-metric').forEach(x=>x.classList.remove('overview-dragging','overview-drop-target'));
+   };
+   el.ondragover=e=>{
+     const [cat]=el.dataset.overviewItem.split(':');
+     if(S.overviewDragKey?.startsWith(cat+':')){e.preventDefault();el.classList.add('overview-drop-target')}
+   };
+   el.ondragleave=()=>el.classList.remove('overview-drop-target');
+   el.ondrop=e=>{
+     e.preventDefault();el.classList.remove('overview-drop-target');
+     const from=e.dataTransfer.getData('text/plain')||S.overviewDragKey;
+     const to=el.dataset.overviewItem;
+     if(!from||!to)return;
+     const [fc,fk]=from.split(':'),[tc,tk]=to.split(':');
+     if(fc!==tc||fk===tk)return;
+     const arr=(S.overviewConfig[fc]||[]).filter(x=>x!==fk);
+     const i=arr.indexOf(tk);arr.splice(i<0?arr.length:i,0,fk);
+     S.overviewConfig[fc]=arr;save();renderOverviewStructure();updateOverview();
+   };
+ });
+}
+
+function openOverviewEditor(cat){
+ ensureOverviewConfig();S.overviewEditing=cat;
+ const titles={gaming:'Gaming',gpu:'GPU',cpu:'CPU',memory:'Memory'};
+ $('overviewEditorTitle').textContent=`Edit ${titles[cat]} overview`;
+ $('overviewEditorSubtitle').textContent='Choose metrics and drag rows to change their order.';
+ renderOverviewEditorList();
+ $('overviewEditorBackdrop').classList.remove('hidden');
+}
+function closeOverviewEditor(){S.overviewEditing=null;$('overviewEditorBackdrop').classList.add('hidden')}
+
+function renderOverviewEditorList(){
+ const cat=S.overviewEditing;if(!cat)return;
+ const selected=S.overviewConfig[cat]||[],defs=OVERVIEW_DEFS[cat]||[];
+ const ordered=[...selected.map(k=>overviewDef(cat,k)).filter(Boolean),...defs.filter(d=>!selected.includes(d.key))];
+ $('overviewEditorList').innerHTML=ordered.map(d=>`
+   <label class="overview-choice" draggable="true" data-editor-key="${d.key}">
+    <span class="handle">⠿</span>
+    <span class="copy"><strong>${esc(d.label)}</strong><small>${esc(d.desc||'')}</small></span>
+    <input type="checkbox" ${selected.includes(d.key)?'checked':''} data-editor-toggle="${d.key}">
+   </label>`).join('');
+ $('overviewEditorList').querySelectorAll('[data-editor-toggle]').forEach(input=>{
+   input.onchange=()=>{
+     const key=input.dataset.editorToggle,arr=S.overviewConfig[cat]||[];
+     if(input.checked&&!arr.includes(key))arr.push(key);
+     if(!input.checked)S.overviewConfig[cat]=arr.filter(x=>x!==key);
+     else S.overviewConfig[cat]=arr;
+     save();renderOverviewStructure();updateOverview();
+   };
+ });
+ $('overviewEditorList').querySelectorAll('[data-editor-key]').forEach(row=>{
+   row.ondragstart=e=>{e.dataTransfer.setData('text/plain',row.dataset.editorKey);row.classList.add('overview-dragging')};
+   row.ondragend=()=>row.classList.remove('overview-dragging');
+   row.ondragover=e=>{e.preventDefault();row.classList.add('overview-drop-target')};
+   row.ondragleave=()=>row.classList.remove('overview-drop-target');
+   row.ondrop=e=>{
+     e.preventDefault();row.classList.remove('overview-drop-target');
+     const from=e.dataTransfer.getData('text/plain'),to=row.dataset.editorKey;
+     if(!from||from===to)return;
+     const arr=S.overviewConfig[cat]||[];
+     if(!arr.includes(from)||!arr.includes(to))return;
+     const next=arr.filter(x=>x!==from),i=next.indexOf(to);next.splice(i<0?next.length:i,0,from);
+     S.overviewConfig[cat]=next;save();renderOverviewEditorList();renderOverviewStructure();updateOverview();
+   };
+ });
+}
+
+document.querySelectorAll('[data-edit-overview]').forEach(b=>b.addEventListener('click',()=>openOverviewEditor(b.dataset.editOverview)));
+$('overviewEditorClose').addEventListener('click',closeOverviewEditor);
+$('overviewEditorDone').addEventListener('click',closeOverviewEditor);
+$('overviewEditorBackdrop').addEventListener('click',e=>{if(e.target===$('overviewEditorBackdrop'))closeOverviewEditor()});
+$('overviewEditorReset').addEventListener('click',()=>{
+ const cat=S.overviewEditing;if(!cat)return;
+ S.overviewConfig[cat]=[...OVERVIEW_DEFAULTS[cat]];save();renderOverviewEditorList();renderOverviewStructure();updateOverview();
+});
+
 function updateFps(){
  const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),
        tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);
@@ -1658,13 +1679,8 @@ const PRESETS={
   r=>/cpu tctl tdie|cpu package temperature/.test(readingText(r)),
   r=>/cpu package power|package power/.test(readingText(r)),
   r=>/core effective clocks.*avg|average effective clock/.test(readingText(r)),
-  r=>/^thermal limit$/.test(norm(r.Label||r.LabelOriginal||'')),
   r=>/^cpu ppt limit$/.test(norm(r.Label||r.LabelOriginal||'')),
-  r=>/^cpu tdc limit$/.test(norm(r.Label||r.LabelOriginal||'')),
-  r=>/^cpu edc limit$/.test(norm(r.Label||r.LabelOriginal||'')),
-  r=>/thermal throttling htc/.test(readingText(r)),
-  r=>/thermal throttling prochot cpu/.test(readingText(r)),
-  r=>/thermal throttling prochot ext/.test(readingText(r))
+  r=>/thermal throttling htc/.test(readingText(r))
  ],
  memory:[
   r=>/physical memory load/.test(readingText(r)),
@@ -1700,7 +1716,7 @@ function exportSetup(){
  const pinItems=S.pins.map(k=>{const r=reading(k);if(!r)return null;return {reading:descriptor(r),options:ensureOpt(k)}}).filter(Boolean);
  const cfg={
   schema:'hwinfo-performance-lab-setup',version:5,exportedAt:new Date().toISOString(),
-  ui:{theme:S.themePref,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category,healthColors:S.healthColors,targetFps:S.targetFps},
+  ui:{theme:S.themePref,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category,healthColors:S.healthColors,targetFps:S.targetFps,overview:S.overviewConfig},
   pins:pinItems,
   sources:{fps:S.fpsPref?descriptor(reading(S.fpsPref)):null,frameTime:S.ftPref?descriptor(reading(S.ftPref)):null}
  };
@@ -1718,6 +1734,8 @@ function applyImportedSetup(cfg){
  if(cfg.ui?.theme)applyTheme(cfg.ui.theme);
  if(typeof cfg.ui?.healthColors==='boolean'){S.healthColors=cfg.ui.healthColors;$('healthColors').checked=S.healthColors}
  if(cfg.ui&&cfg.ui.targetFps!==undefined){const tf=Number(cfg.ui.targetFps);S.targetFps=Number.isFinite(tf)?tf:60;$('targetFps').value=String(S.targetFps)}
+ if(cfg.ui?.overview&&typeof cfg.ui.overview==='object')S.overviewConfig=cfg.ui.overview;
+ ensureOverviewConfig();renderOverviewStructure();
  const fr=resolveDescriptor(cfg.sources?.fps),tr=resolveDescriptor(cfg.sources?.frameTime);S.fpsPref=fr?keyOf(fr):'';S.ftPref=tr?keyOf(tr):'';
  save();rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();updateDynamic();schedulePoll();
  toast(`Setup imported${unresolved?` • ${unresolved} sensor(s) not found on this PC`:''}`)
@@ -1765,7 +1783,7 @@ document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
 document.querySelectorAll('.menu-panel').forEach(panel=>panel.addEventListener('click',e=>e.stopPropagation()));
 document.querySelectorAll('[data-menu-action]').forEach(el=>el.addEventListener('click',()=>setTimeout(()=>closeMenus(),0)));
 document.addEventListener('click',()=>closeMenus());
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeMenus();if(!$('overviewEditorBackdrop').classList.contains('hidden'))closeOverviewEditor()}});
 
 $('search').addEventListener('input',()=>{S.topology='';renderGroupsStructure(true)});
 $('window').addEventListener('change',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
@@ -1794,7 +1812,7 @@ $('controlsOn').onclick=()=>applyAllControls(true);$('controlsOff').onclick=()=>
 $('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
 $('exportSetup').onclick=exportSetup;$('importSetup').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files?.[0])importSetupFile(e.target.files[0])};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.category=b.dataset.filter;setFilterButtons();S.topology='';renderGroupsStructure(true)});
-bindGlobalDnD();applyTheme(S.themePref);setFilterButtons();
+bindGlobalDnD();applyTheme(S.themePref);setFilterButtons();ensureOverviewConfig();renderOverviewStructure();
 
 setInterval(()=>{const s=Math.floor((Date.now()-S.sessionStart)/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;$('elapsed').textContent=h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;updateStatus()},500);
 window.addEventListener('resize',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
