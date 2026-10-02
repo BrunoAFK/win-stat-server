@@ -1,67 +1,41 @@
-HWiNFO PERFORMANCE LAB v6.7
-===========================
+HWiNFO PERFORMANCE LAB v6.7.2
+=============================
 
-CUSTOMIZABLE TOP OVERVIEW
--------------------------
-Each top panel now has an Edit button:
-- Gaming
-- GPU
-- CPU
-- Memory
+TYPOGRAPHY SCALE
+----------------
+Settings -> Minimum font size
 
-Edit lets you:
-- show/hide individual summary metrics
-- drag selected metrics to reorder them
-- reset that category to defaults
+Available values:
+- 11 px
+- 12 px
+- 13 px
+- 14 px
+- 15 px
+- 16 px
 
-You can also drag visible metrics directly inside a category to reorder them.
+The selected value is a true minimum:
+no dashboard text is intentionally rendered smaller than it.
 
-The overview selection/order is saved locally and included in Export setup /
-Import setup.
+Larger typography scales proportionally from the same setting, so choosing
+14 px does not merely enlarge tiny labels; headings, values, menus and card
+text grow together while preserving visual hierarchy.
 
-CPU THROTTLING SEMANTICS
-------------------------
-The default CPU overview is simplified.
+Example:
+Minimum font = 11 px
+  old 8/9/10/11 px text -> 11 px minimum
+  23 px heading         -> 23 px
+  29 px pinned value    -> 29 px
 
-Instead of showing three separate HTC / PROCHOT status rows plus several limit
-percentages, it shows one primary:
+Minimum font = 14 px
+  smallest text         -> 14 px
+  former 23 px heading  -> ~29 px
+  former 29 px value    -> ~37 px
 
-  Thermal throttling: OK / ACTIVE
+The setting:
+- persists in the browser
+- is included in Export setup
+- is restored by Import setup
+- triggers chart redraw after font/layout changes
 
-ACTIVE is reported only when an actual thermal-protection signal exposed by
-HWiNFO is active:
-- Thermal Throttling (HTC)
-- Thermal Throttling (PROCHOT CPU)
-- Thermal Throttling (PROCHOT EXT)
-
-This is the meaningful "CPU is reducing/limiting itself for thermal protection"
-summary.
-
-Detailed metrics remain available through Edit:
-- Thermal Limit %
-- PPT Limit %
-- TDC Limit %
-- EDC Limit %
-
-Those are resource/limit utilization values and are NOT themselves percentages
-of throttling time.
-
-GPU
----
-GPU also gets a single Thermal throttling status when HWiNFO exposes an explicit
-GPU thermal/performance-limit signal.
-
-If the hardware/driver does not expose an explicit status, it remains "—"
-rather than guessing from temperature.
-
-DEFAULT CPU OVERVIEW
---------------------
-- Total usage
-- Max thread
-- Temperature
-- Package power
-- Effective clock
-- Thermal throttling
-- PPT limit
-
-Target FPS Off and all prior v6.6 features remain available.
+This build is based on the V6.7.1 runtime hotfix, so the restored HWiNFO
+sampling / pinned-card / graph functions are retained.
