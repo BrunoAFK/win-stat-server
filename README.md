@@ -1,62 +1,51 @@
-HWiNFO PERFORMANCE LAB v6
-=========================
+HWiNFO PERFORMANCE LAB v6.1
+===========================
 
-V6 UI REDESIGN
---------------
-The feature-heavy top toolbar from v5 has been replaced with a compact command bar:
+PATCHES
+-------
+1. Fixed the empty "Nothing pinned..." tile staying in the Pinned Telemetry grid
+   after the first real cards are added.
 
-  Search | Presets | Dashboard | Session | Settings
+2. Expanded Gaming / PresentMon essentials:
+   - FPS
+   - Frame Time
+   - CPU Busy
+   - CPU Wait
+   - GPU Busy
+   - GPU Wait
+   - GPU Latency
+   - Display Latency
 
-All secondary controls are grouped into polished popover menus.
+   Metrics only appear when HWiNFO/PresentMon exposes them for the current game.
 
-Presets
-  - Gaming
-  - GPU
-  - CPU
-  - Memory
-  - All essentials
+3. The Gaming essential preset now attempts to pin the whole frame pipeline above.
 
-Dashboard
-  - Expand / collapse all sensor groups
-  - Show / hide all pinned graphs
-  - Choose the large pinned-card value
-  - Apply large-value mode to all cards
-  - Clear pinned dashboard
+PRESENTMON INTERPRETATION
+-------------------------
+CPU Busy:
+  Time the CPU spent generating the frame.
 
-Session
-  - Pause / resume collection
-  - Reset session statistics/history
-  - Export telemetry CSV
+CPU Wait:
+  Time the CPU waited before it could begin generating the next frame.
 
-Settings
-  - Graph history window
-  - Browser refresh interval
-  - System / Dark / Light appearance
-  - Export dashboard setup
-  - Import dashboard setup
+GPU Busy:
+  Time the GPU was actively executing work for the frame.
 
-V5 FEATURES RETAINED
---------------------
-- Robust FPS and frame-time source auto-detection
-- Manual FPS / frame-time source selection
-- Gaming / GPU / CPU / Memory categorisation
-- Hoverable graphs with exact sample values
-- Drag sensors to pin
-- Drag pinned cards to reorder
-- Current / Session Min / Session Avg / Session Max always visible
-- Large card value selector changes only the headline value
-- Session reset
-- Sampled FPS percentiles
-- CSV telemetry export
-- Portable dashboard JSON export/import
-- Cross-PC sensor remapping by HWiNFO sensor/label/unit
-- Dark / Light / System mode
-- Windows IPv4 + IPv6 localhost support for Tunnelmole
+GPU Wait:
+  Time the GPU was idle while the frame was progressing through GPU work.
+
+GPU Latency:
+  Time from frame start until GPU work begins.
+
+Display Latency:
+  Time from frame start until the frame reaches the display, when available.
+
+These are durations in milliseconds, not percentages.
 
 SETUP
 -----
-1. Run HWiNFO in Sensors-only mode.
-2. Enable HWiNFO -> Settings -> Shared Memory Support.
+1. Start HWiNFO Sensors-only.
+2. Enable Shared Memory Support.
 3. Run START-PERFORMANCE-LAB.bat.
 4. Open http://localhost:8080
-5. Once local access works, run: tmole.exe 8080
+5. Then expose with tmole.exe 8080 if needed.

@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6</title>
+<title>HWiNFO Performance Lab v6.1</title>
 <style>
 :root{
   color-scheme:dark;
@@ -718,11 +718,15 @@ html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
 </div>
 
 <div class="category-overview">
- <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span>frame delivery</span></div><div class="cat-metrics">
+ <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span>PresentMon frame pipeline</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">FPS</div><div class="v" id="ovFps">—</div></div>
   <div class="cat-metric"><div class="k">Frame time</div><div class="v" id="ovFt">—</div></div>
+  <div class="cat-metric"><div class="k">CPU busy</div><div class="v" id="ovCpuBusy">—</div></div>
+  <div class="cat-metric"><div class="k">CPU wait</div><div class="v" id="ovCpuWait">—</div></div>
   <div class="cat-metric"><div class="k">GPU busy</div><div class="v" id="ovGpuBusy">—</div></div>
-  <div class="cat-metric"><div class="k">Latency</div><div class="v" id="ovLatency">—</div></div>
+  <div class="cat-metric"><div class="k">GPU wait</div><div class="v" id="ovGpuWait">—</div></div>
+  <div class="cat-metric"><div class="k">GPU latency</div><div class="v" id="ovGpuLatency">—</div></div>
+  <div class="cat-metric"><div class="k">Display latency</div><div class="v" id="ovDisplayLatency">—</div></div>
  </div></section>
  <section class="cat-panel"><div class="cat-head"><strong>GPU</strong><span>graphics</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">Load</div><div class="v" id="ovGpu">—</div></div>
@@ -834,7 +838,7 @@ matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',()=>{if(
 
 function classify(r){
  const t=readingText(r),u=norm(r.Unit);
- if(u==='fps'||/presentmon|frame time|frametime|framerate|gpu busy|render latency|display latency|present latency/.test(t))return 'gaming';
+ if(u==='fps'||/presentmon|frame time|frametime|framerate|cpu busy|cpu wait|gpu busy|gpu wait|gpu latency|render latency|display latency|present latency|click to photon/.test(t))return 'gaming';
  if(/\bgpu\b|graphics processor|hot spot|video engine|d3d|memory controller/.test(t))return 'gpu';
  if(/\bcpu\b|core effective|core clock|package power|tctl|tdie|ccd|ppt|tdc|edc/.test(t))return 'cpu';
  if(/physical memory|virtual memory|committed memory|page file|\bram\b|\bvram\b|gpu memory|memory used|memory load/.test(t))return 'memory';
@@ -886,8 +890,12 @@ function overviewReading(kind){
   gt:[/\bgpu temperature\b/,/\bgpu hot spot\b/],
   gp:[/\bgpu power\b/,/\btotal graphics power\b/],
   gc:[/\bgpu clock\b/,/\bgpu core clock\b/],
+  cpubusy:[/\bcpu busy\b/],
+  cpuwait:[/\bcpu wait\b/],
   gbusy:[/\bgpu busy\b/],
-  latency:[/\brender latency\b/,/\bdisplay latency\b/,/\bpresent latency\b/],
+  gpuwait:[/\bgpu wait\b/],
+  gpulatency:[/\bgpu latency\b/],
+  displaylatency:[/\bdisplay latency\b/,/\brender present latency\b/,/\brender latency\b/,/\bpresent latency\b/],
   cpu:[/\btotal cpu usage\b/,/\bcpu total\b/],
   ct:[/\bcpu tctl tdie\b/,/\bcpu package temperature\b/,/\bcpu temperature\b/],
   cp:[/\bcpu package power\b/],
@@ -972,6 +980,7 @@ function syncPinsStructure(){
  const host=$('pinHost'),valid=S.pins.filter(k=>reading(k));
  if(!valid.length){host.className='';host.innerHTML='<div class="empty">Nothing pinned. Use an essential preset, click ★, or drag a sensor row here.</div>';return}
  host.className='pingrid';
+ host.querySelectorAll(':scope > .empty').forEach(x=>x.remove());
  const existing=new Map([...host.querySelectorAll('.pin-card')].map(c=>[c.dataset.key,c]));
  for(const k of valid){
   const r=reading(k);let c=existing.get(k);
@@ -1029,7 +1038,10 @@ function updatePins(){syncPinsStructure();document.querySelectorAll('.pin-card')
 function updateOverview(){
  const fps=selectedSource('fps'),ft=selectedSource('ft');
  const vals={
-  ovFps:fps,ovFt:ft,ovGpuBusy:overviewReading('gbusy'),ovLatency:overviewReading('latency'),
+  ovFps:fps,ovFt:ft,
+  ovCpuBusy:overviewReading('cpubusy'),ovCpuWait:overviewReading('cpuwait'),
+  ovGpuBusy:overviewReading('gbusy'),ovGpuWait:overviewReading('gpuwait'),
+  ovGpuLatency:overviewReading('gpulatency'),ovDisplayLatency:overviewReading('displaylatency'),
   ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGp:overviewReading('gp'),ovGc:overviewReading('gc'),
   ovCpu:overviewReading('cpu'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),ovCc:overviewReading('cc'),
   ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload')
@@ -1096,8 +1108,14 @@ function updateDynamic(){
 
 const PRESETS={
  gaming:[
-  r=>candidateScore(r,'fps')>0,r=>candidateScore(r,'ft')>0,
-  r=>/gpu busy/.test(readingText(r)),r=>/render latency|display latency|present latency/.test(readingText(r))
+  r=>candidateScore(r,'fps')>0,
+  r=>candidateScore(r,'ft')>0,
+  r=>/cpu busy/.test(readingText(r)),
+  r=>/cpu wait/.test(readingText(r)),
+  r=>/gpu busy/.test(readingText(r)),
+  r=>/gpu wait/.test(readingText(r)),
+  r=>/gpu latency/.test(readingText(r)),
+  r=>/display latency|render present latency|render latency|present latency/.test(readingText(r))
  ],
  gpu:[
   r=>/gpu core load/.test(readingText(r)),r=>/gpu temperature/.test(readingText(r)),r=>/gpu hot spot/.test(readingText(r)),
