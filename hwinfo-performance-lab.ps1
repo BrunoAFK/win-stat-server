@@ -261,15 +261,24 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab</title>
+<title>HWiNFO Performance Lab v5</title>
 <style>
 :root{
   color-scheme:dark;
   --bg:#070a0f;--panel:#0e141d;--panel2:#121a26;--panel3:#182333;
   --line:#223043;--line-soft:#192534;--text:#eef4fb;--muted:#8392a8;
   --accent:#6ea8ff;--accent2:#8bc1ff;--good:#74d49a;--warn:#efc56c;--bad:#ee7a86;
-  --shadow:0 12px 35px rgba(0,0,0,.20);
+  --tooltip:#0a1019;--toolbar:rgba(7,10,15,.94);--shadow:0 12px 35px rgba(0,0,0,.20);
+  --chart-grid:rgba(131,146,168,.18);--chart-line:rgba(110,168,255,.96);--chart-hover:rgba(238,244,251,.55);
   font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+}
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f7fb;--panel:#ffffff;--panel2:#f4f7fb;--panel3:#eaf0f7;
+  --line:#d5deea;--line-soft:#e7edf4;--text:#172033;--muted:#6b788d;
+  --accent:#236ed8;--accent2:#1558b2;--good:#167a43;--warn:#a66505;--bad:#b63b4d;
+  --tooltip:#ffffff;--toolbar:rgba(244,247,251,.94);--shadow:0 8px 28px rgba(25,45,75,.08);
+  --chart-grid:rgba(70,88,112,.14);--chart-line:rgba(35,110,216,.96);--chart-hover:rgba(23,32,51,.45);
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);min-height:100%}
@@ -280,9 +289,8 @@ button,select,input[type="text"]{
 }
 button{cursor:pointer;padding:8px 11px;min-height:36px}
 button:hover{background:var(--panel2)}
-button.primary{background:#162642;border-color:#315682}
-button.danger{border-color:#63343d}
-button.ghost{background:transparent}
+button.primary{background:color-mix(in srgb,var(--accent) 17%,var(--panel));border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+button.danger{border-color:color-mix(in srgb,var(--bad) 60%,var(--line))}
 button:disabled{opacity:.45;cursor:not-allowed}
 select{padding:7px 9px;min-height:36px}
 input[type="text"]{padding:8px 11px;min-height:36px;outline:none}
@@ -293,29 +301,35 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:18p
 .badge{font-size:10px;font-weight:800;letter-spacing:.09em;border:1px solid var(--line);padding:7px 9px;border-radius:999px;background:var(--panel2)}
 .badge.live{color:var(--good)}.badge.stale{color:var(--warn)}.badge.offline{color:var(--bad)}
 .age{font-size:11px;color:var(--muted)}
-.toolbar{position:sticky;top:0;z-index:40;background:rgba(7,10,15,.94);backdrop-filter:blur(14px);padding:9px 0 11px;border-bottom:1px solid rgba(34,48,67,.45);margin-bottom:12px}
+.toolbar{position:sticky;top:0;z-index:40;background:var(--toolbar);backdrop-filter:blur(14px);padding:9px 0 11px;border-bottom:1px solid var(--line-soft);margin-bottom:12px}
 .toolbar-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.toolbar-row+.toolbar-row{margin-top:7px}
-.search{flex:1;min-width:250px}.spacer{flex:1}
+.search{flex:1;min-width:270px}.spacer{flex:1}
 .sep{height:24px;width:1px;background:var(--line);margin:0 2px}.label-mini{font-size:10px;color:var(--muted)}
-.err{background:#2c161c;border:1px solid #62313b;color:#f2c3cb;padding:12px 13px;border-radius:11px;margin-bottom:11px}
+.err{background:color-mix(in srgb,var(--bad) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line));color:var(--text);padding:12px 13px;border-radius:11px;margin-bottom:11px}
+.toast{position:fixed;right:18px;bottom:18px;z-index:200;background:var(--tooltip);border:1px solid var(--line);box-shadow:var(--shadow);padding:10px 12px;border-radius:10px;font-size:11px;display:none;max-width:370px}
 .sessionbar{display:flex;gap:13px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:10px;margin:10px 0}
-.sessionbar strong{color:#c9d3e0;font-weight:650}.dot{width:5px;height:5px;border-radius:99px;background:var(--line);display:inline-block}
-.overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin:9px 0 16px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 12px;box-shadow:var(--shadow)}
-.kpi .k{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.kpi .v{font-size:21px;font-weight:780;letter-spacing:-.025em;margin-top:5px;font-variant-numeric:tabular-nums}
-.kpi .s{font-size:9px;color:var(--muted);margin-top:2px}
+.sessionbar strong{color:var(--text);font-weight:650}.dot{width:5px;height:5px;border-radius:99px;background:var(--line);display:inline-block}
+.category-overview{display:grid;grid-template-columns:repeat(4,minmax(230px,1fr));gap:9px;margin:9px 0 17px}
+.cat-panel{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+.cat-head{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--panel2);border-bottom:1px solid var(--line-soft)}
+.cat-head strong{font-size:11px;letter-spacing:.04em}.cat-head span{font-size:9px;color:var(--muted)}
+.cat-metrics{display:grid;grid-template-columns:repeat(2,1fr)}
+.cat-metric{padding:9px 10px;border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);min-width:0}
+.cat-metric:nth-child(even){border-right:0}.cat-metric:nth-last-child(-n+2){border-bottom:0}
+.cat-metric .k{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cat-metric .v{font-size:16px;font-weight:760;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .sectionhead{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:20px 0 8px}
 .sectionhead h2{font-size:14px;margin:0}.sectionhead p{font-size:10px;color:var(--muted);margin:3px 0 0}
 .global-card-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.dropzone{border:1px dashed #304761;border-radius:13px;padding:11px;text-align:center;color:var(--muted);font-size:10px;margin-bottom:9px;transition:.15s background,.15s border}
-.dropzone.dragover{background:#101e31;border-color:#6ea8ff;color:#cfe3ff}
+.dropzone{border:1px dashed color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:13px;padding:11px;text-align:center;color:var(--muted);font-size:10px;margin-bottom:9px;transition:.15s background,.15s border}
+.dropzone.dragover{background:color-mix(in srgb,var(--accent) 8%,var(--panel));border-color:var(--accent);color:var(--text)}
 .pingrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:10px}
 .pin-card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);min-width:0;transition:.15s border,.15s transform}
 .pin-card.dragging{opacity:.55}.pin-card.drag-target{border-color:var(--accent);transform:translateY(-2px)}
 .pin-head{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;padding:10px 11px 7px}
-.pin-left{display:flex;gap:8px;align-items:flex-start;min-width:0}.draghandle{font-size:16px;line-height:1;color:#68798f;cursor:grab;padding-top:2px;user-select:none}
+.pin-left{display:flex;gap:8px;align-items:flex-start;min-width:0}.draghandle{font-size:16px;line-height:1;color:var(--muted);cursor:grab;padding-top:2px;user-select:none}
 .pin-title{min-width:0}.pin-title .l{font-size:12px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pin-title .g{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.catbadge{display:inline-flex;align-items:center;padding:2px 6px;border:1px solid var(--line);border-radius:999px;font-size:8px;color:var(--muted);margin-top:5px}
 .pin-actions{display:flex;gap:4px}.iconbtn{padding:4px 7px;min-height:27px;font-size:10px;border-radius:7px}
 .pin-primary{display:flex;align-items:flex-end;justify-content:space-between;gap:8px;padding:0 11px 9px}
 .big{font-size:29px;font-weight:800;letter-spacing:-.035em;font-variant-numeric:tabular-nums}.smallmode{font-size:9px;color:var(--muted);margin-top:2px}
@@ -324,25 +338,31 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:18p
 .chartbox{height:126px;position:relative;padding:6px 8px 8px;touch-action:none}
 .chartbox canvas{width:100%;height:100%;display:block}
 .chart-legend{position:absolute;left:10px;bottom:7px;font-size:8px;color:var(--muted);pointer-events:none}
-.chart-tooltip{position:fixed;z-index:100;display:none;pointer-events:none;background:#0a1019;border:1px solid #31445e;border-radius:8px;padding:7px 8px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:10px;line-height:1.4;min-width:118px}
+.chart-tooltip{position:fixed;z-index:100;display:none;pointer-events:none;background:var(--tooltip);border:1px solid var(--line);border-radius:8px;padding:7px 8px;box-shadow:var(--shadow);font-size:10px;line-height:1.4;min-width:118px}
 .chart-tooltip .time{color:var(--muted)}.chart-tooltip .val{font-size:13px;font-weight:750;margin-top:2px}
 .pin-foot{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 9px;border-top:1px solid var(--line-soft)}
 .pin-foot select{font-size:9px;min-height:29px;padding:4px 6px}.check{font-size:9px;color:var(--muted);display:flex;gap:4px;align-items:center}.check input{margin:0}
 .empty{border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted);font-size:11px}
+.sourcebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:8px 10px;margin-bottom:8px}
+.sourcebar .source-group{display:flex;gap:6px;align-items:center;min-width:0}.sourcebar label{font-size:9px;color:var(--muted);white-space:nowrap}
+.sourcebar select{max-width:440px;min-width:250px;font-size:9px;min-height:31px}
+.source-state{font-size:9px;color:var(--muted)}.source-state.ok{color:var(--good)}.source-state.warn{color:var(--warn)}
 .fpsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
 .metric{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px}.metric .k{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.metric .v{font-size:18px;font-weight:760;margin-top:4px;font-variant-numeric:tabular-nums}.metric .d{font-size:8px;color:var(--muted);margin-top:3px;line-height:1.35}
+.filterchips{display:flex;gap:5px;flex-wrap:wrap}.filterchips button{min-height:28px;padding:4px 8px;font-size:9px}.filterchips button.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--panel))}
 .groups{display:grid;gap:7px}.group{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
 .group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--panel2);padding:9px 11px;cursor:pointer}.group-name{font-size:11px;font-weight:700}.group-count{font-size:9px;color:var(--muted)}
-table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;border-top:1px solid var(--line-soft);text-align:right;font-variant-numeric:tabular-nums}th{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:#0c121a}th:first-child,td:first-child{text-align:center;width:30px}th:nth-child(2),td:nth-child(2){text-align:left;width:43%}.sensorlabel{color:#c8d3e0}.star{background:transparent;border:0;min-height:0;padding:1px 3px;font-size:14px;opacity:.55}.star.on{opacity:1}.sensor-row{cursor:grab}.sensor-row.dragging{opacity:.45}
+table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;border-top:1px solid var(--line-soft);text-align:right;font-variant-numeric:tabular-nums}th{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--panel2)}th:first-child,td:first-child{text-align:center;width:30px}th:nth-child(2),td:nth-child(2){text-align:left;width:43%}.sensorlabel{color:var(--text)}.star{background:transparent;border:0;min-height:0;padding:1px 3px;font-size:14px;opacity:.55}.star.on{opacity:1}.sensor-row{cursor:grab}.sensor-row.dragging{opacity:.45}
 .hidden{display:none!important}
-.flash{animation:flash .38s ease}@keyframes flash{0%{box-shadow:0 0 0 0 rgba(110,168,255,.45)}100%{box-shadow:0 0 0 10px rgba(110,168,255,0)}}
-@media(max-width:800px){.wrap{padding:11px}.pingrid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.livebox{justify-content:flex-start}.sep{display:none}th:nth-child(n+4),td:nth-child(n+4){display:none}}
+.flash{animation:flash .38s ease}@keyframes flash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+@media(max-width:1150px){.category-overview{grid-template-columns:repeat(2,minmax(230px,1fr))}}
+@media(max-width:800px){.wrap{padding:11px}.pingrid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.livebox{justify-content:flex-start}.sep{display:none}.category-overview{grid-template-columns:1fr}.sourcebar select{min-width:180px;max-width:100%}th:nth-child(n+4),td:nth-child(n+4){display:none}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
- <div class="brand"><h1>HWiNFO Performance Lab</h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
+ <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:11px">v5</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
  <div class="livebox"><span class="badge" id="status">CONNECTING</span><span class="age" id="age">—</span></div>
 </header>
 
@@ -353,142 +373,524 @@ table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;b
   <select id="window"><option value="60">60 s</option><option value="300" selected>5 min</option><option value="900">15 min</option><option value="1800">30 min</option><option value="3600">60 min</option></select>
   <span class="label-mini">Browser poll</span>
   <select id="clientPoll"><option value="250">250 ms</option><option value="500" selected>500 ms</option><option value="1000">1 s</option><option value="2000">2 s</option></select>
-  <button class="primary" id="essentials">Pin essentials</button>
+  <span class="label-mini">Theme</span>
+  <select id="theme"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select>
   <button id="pause">Pause</button>
   <button class="danger" id="reset">Reset session</button>
-  <button id="export">Export CSV</button>
  </div>
  <div class="toolbar-row">
-  <span class="label-mini">All sensor groups</span>
-  <button id="expandAll">Expand</button><button id="collapseAll">Collapse</button>
+  <span class="label-mini">Essential presets</span>
+  <button data-preset="gaming">Gaming</button><button data-preset="gpu">GPU</button><button data-preset="cpu">CPU</button><button data-preset="memory">Memory</button>
+  <button class="primary" data-preset="all">All essentials</button>
   <span class="sep"></span>
-  <span class="label-mini">All pinned cards</span>
-  <button id="graphsOn">Graphs on</button><button id="graphsOff">Graphs off</button>
-  <select id="globalMode"><option value="all">Show all stats</option><option value="current">Current only</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select>
-  <button id="applyMode">Apply mode</button>
+  <span class="label-mini">Groups</span>
+  <button id="expandAll">Expand all</button><button id="collapseAll">Collapse all</button>
+  <span class="sep"></span>
+  <span class="label-mini">Pinned graphs</span>
+  <button id="graphsOn">All on</button><button id="graphsOff">All off</button>
+  <span class="sep"></span>
+  <span class="label-mini">Large value</span>
+  <select id="globalMode"><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select>
+  <button id="applyMode">Apply to all</button>
   <span class="spacer"></span>
-  <button class="danger" id="clearPins">Clear pins</button>
+  <button id="exportCsv">Export CSV</button>
+  <button id="exportSetup">Export setup</button>
+  <button id="importSetup">Import setup</button>
+  <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+  <button id="clearPins">Clear pins</button>
  </div>
 </div>
 
 <div id="error"></div>
 <div class="sessionbar">
  <span>Session <strong id="elapsed">00:00</strong></span><span class="dot"></span>
- <span>Client samples <strong id="sampleCount">0</strong></span><span class="dot"></span>
+ <span>Source samples <strong id="sampleCount">0</strong></span><span class="dot"></span>
  <span>HWiNFO poll <strong id="sourcePoll">—</strong></span><span class="dot"></span>
  <span>Last source update <strong id="sourceUpdate">—</strong></span>
 </div>
 
-<div class="overview">
- <div class="kpi"><div class="k">FPS</div><div class="v" id="ovFps">—</div><div class="s">PresentMon</div></div>
- <div class="kpi"><div class="k">Frame time</div><div class="v" id="ovFt">—</div><div class="s">PresentMon</div></div>
- <div class="kpi"><div class="k">GPU load</div><div class="v" id="ovGpu">—</div><div class="s">core load</div></div>
- <div class="kpi"><div class="k">GPU temp</div><div class="v" id="ovGt">—</div><div class="s">current</div></div>
- <div class="kpi"><div class="k">CPU total</div><div class="v" id="ovCpu">—</div><div class="s">usage</div></div>
- <div class="kpi"><div class="k">CPU temp</div><div class="v" id="ovCt">—</div><div class="s">package / Tctl</div></div>
+<div class="category-overview">
+ <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span>frame delivery</span></div><div class="cat-metrics">
+  <div class="cat-metric"><div class="k">FPS</div><div class="v" id="ovFps">—</div></div>
+  <div class="cat-metric"><div class="k">Frame time</div><div class="v" id="ovFt">—</div></div>
+  <div class="cat-metric"><div class="k">GPU busy</div><div class="v" id="ovGpuBusy">—</div></div>
+  <div class="cat-metric"><div class="k">Latency</div><div class="v" id="ovLatency">—</div></div>
+ </div></section>
+ <section class="cat-panel"><div class="cat-head"><strong>GPU</strong><span>graphics</span></div><div class="cat-metrics">
+  <div class="cat-metric"><div class="k">Load</div><div class="v" id="ovGpu">—</div></div>
+  <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovGt">—</div></div>
+  <div class="cat-metric"><div class="k">Power</div><div class="v" id="ovGp">—</div></div>
+  <div class="cat-metric"><div class="k">Clock</div><div class="v" id="ovGc">—</div></div>
+ </div></section>
+ <section class="cat-panel"><div class="cat-head"><strong>CPU</strong><span>processor</span></div><div class="cat-metrics">
+  <div class="cat-metric"><div class="k">Total usage</div><div class="v" id="ovCpu">—</div></div>
+  <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovCt">—</div></div>
+  <div class="cat-metric"><div class="k">Package power</div><div class="v" id="ovCp">—</div></div>
+  <div class="cat-metric"><div class="k">Effective clock</div><div class="v" id="ovCc">—</div></div>
+ </div></section>
+ <section class="cat-panel"><div class="cat-head"><strong>Memory</strong><span>RAM / VRAM</span></div><div class="cat-metrics">
+  <div class="cat-metric"><div class="k">RAM load</div><div class="v" id="ovRamLoad">—</div></div>
+  <div class="cat-metric"><div class="k">RAM used</div><div class="v" id="ovRamUsed">—</div></div>
+  <div class="cat-metric"><div class="k">VRAM used</div><div class="v" id="ovVram">—</div></div>
+  <div class="cat-metric"><div class="k">VRAM load</div><div class="v" id="ovVramLoad">—</div></div>
+ </div></section>
 </div>
 
-<div class="sectionhead"><div><h2>Pinned telemetry</h2><p>Drag cards to reorder. Drag any row from the sensor list into this area to pin it.</p></div></div>
-<div class="dropzone" id="dropzone">Drop a sensor here to pin it • pin order is saved in this browser</div>
-<div id="pinHost" class="pingrid"></div>
+<div class="sectionhead">
+ <div><h2>Pinned telemetry</h2><p>Drag cards to reorder. Drag any sensor row here to pin it. Card mode changes only the large number; Current / Min / Avg / Max always remain visible.</p></div>
+ <div class="global-card-controls"></div>
+</div>
+<div class="dropzone" id="dropzone">Drop a sensor here to pin it</div>
+<div class="pingrid" id="pinHost"></div>
 
-<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Based on HWiNFO polling samples. For exact per-frame 1% / 0.1% lows we would integrate raw PresentMon next.</p></div></div>
+<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Uses one sample per HWiNFO source update. Percentiles are sampled telemetry, not raw per-frame PresentMon 1% / 0.1% lows.</p></div></div>
+<div class="sourcebar">
+ <div class="source-group"><label for="fpsSource">FPS source</label><select id="fpsSource"><option value="">Auto detect</option></select></div>
+ <div class="source-group"><label for="ftSource">Frame-time source</label><select id="ftSource"><option value="">Auto detect</option></select></div>
+ <span class="source-state" id="fpsSourceState">waiting for HWiNFO…</span>
+</div>
 <div class="fpsgrid">
  <div class="metric"><div class="k">Average FPS</div><div class="v" id="fpsAvg">—</div><div class="d">Session sample average</div></div>
  <div class="metric"><div class="k">Sampled P5 FPS</div><div class="v" id="fpsP5">—</div><div class="d">5th percentile</div></div>
  <div class="metric"><div class="k">Sampled P1 FPS</div><div class="v" id="fpsP1">—</div><div class="d">1st percentile</div></div>
- <div class="metric"><div class="k">Sampled P0.1 FPS</div><div class="v" id="fpsP01">—</div><div class="d">Needs a long run</div></div>
+ <div class="metric"><div class="k">Sampled P0.1 FPS</div><div class="v" id="fpsP01">—</div><div class="d">Needs a longer run</div></div>
  <div class="metric"><div class="k">FPS range</div><div class="v" id="fpsRange">—</div><div class="d">Session min / max</div></div>
  <div class="metric"><div class="k">Frame-time P95</div><div class="v" id="ftP95">—</div><div class="d">Sample percentile</div></div>
  <div class="metric"><div class="k">Frame-time P99</div><div class="v" id="ftP99">—</div><div class="d">Sample percentile</div></div>
- <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Largest sampled value</div></div>
+ <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Worst sampled value</div></div>
 </div>
 
 <div class="sectionhead">
- <div><h2>All HWiNFO sensors</h2><p>Current cells update in place — opening a dropdown or selecting text is no longer interrupted by refreshes.</p></div>
+ <div><h2>All HWiNFO sensors</h2><p>★ pin, or drag a row into Pinned telemetry. HWiNFO Min/Max/Avg below are HWiNFO's own counters.</p></div>
+ <div class="filterchips" id="filters">
+  <button data-filter="all" class="active">All</button><button data-filter="gaming">Gaming</button><button data-filter="gpu">GPU</button><button data-filter="cpu">CPU</button><button data-filter="memory">Memory</button><button data-filter="other">Other</button>
+ </div>
 </div>
-<div id="groups" class="groups"></div>
+<div class="groups" id="groups"></div>
 </div>
+
 <div class="chart-tooltip" id="tooltip"><div class="time"></div><div class="val"></div></div>
+<div class="toast" id="toast"></div>
 
 <script>
-'use strict';
-const S={
- latest:null, paused:false, inFlight:false, pollTimer:null, lastFetchAt:0, lastSourcePoll:0,
- sessionStart:Date.now(), samples:0, histories:new Map(), collapsed:new Set(),
- topology:'', fpsKey:null, ftKey:null, draggingKey:null, hoverCharts:new Map(),
- pins:JSON.parse(localStorage.getItem('hpl-v4-pins')||'[]'),
- opts:JSON.parse(localStorage.getItem('hpl-v4-opts')||'{}')
-};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=s=>String(s??'').toLowerCase().replace(/[\(\)\[\]\-_:/\\]+/g,' ').replace(/\s+/g,' ').trim();
 const keyOf=r=>`${r.SensorIndex}:${r.ReadingId}`;
-const finite=v=>v!==null&&v!==undefined&&Number.isFinite(Number(v));
-const n=v=>finite(v)?Number(v):null;
-const textOf=r=>`${r.Sensor||''} ${r.SensorOriginal||''} ${r.Label||''} ${r.LabelOriginal||''} ${r.Unit||''}`.toLowerCase();
-const save=()=>{localStorage.setItem('hpl-v4-pins',JSON.stringify(S.pins));localStorage.setItem('hpl-v4-opts',JSON.stringify(S.opts));};
-function fmt(v,u,short=false){v=n(v);if(v===null)return '—';let d=Math.abs(v)>=1000?0:Math.abs(v)>=100?1:2;if(short&&Math.abs(v)>=100)d=0;return `${v.toFixed(d)}${u?' '+u:''}`}
-function qtile(values,q){const a=values.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!a.length)return null;if(a.length===1)return a[0];const p=(a.length-1)*q,lo=Math.floor(p),hi=Math.ceil(p);return a[lo]+(a[hi]-a[lo])*(p-lo)}
-function calc(a){const v=(a||[]).map(x=>x.v).filter(Number.isFinite);if(!v.length)return{cur:null,min:null,max:null,avg:null,count:0};return{cur:v[v.length-1],min:Math.min(...v),max:Math.max(...v),avg:v.reduce((x,y)=>x+y,0)/v.length,count:v.length}}
+const readingText=r=>norm(`${r.Sensor||''} ${r.SensorOriginal||''} ${r.Label||''} ${r.LabelOriginal||''} ${r.Unit||''}`);
+const n=v=>(v===null||v===undefined||!Number.isFinite(Number(v)))?null:Number(v);
+const fmt=(v,u,compact=false)=>{v=n(v);if(v===null)return '—';let d=compact?(Math.abs(v)>=100?0:1):(Math.abs(v)>=1000?0:Math.abs(v)>=100?1:2);return `${v.toFixed(d)}${u?` ${u}`:''}`};
+const qtile=(a,q)=>{const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!x.length)return null;if(x.length===1)return x[0];const p=(x.length-1)*q,l=Math.floor(p),h=Math.ceil(p);return x[l]+(x[h]-x[l])*(p-l)};
+const calc=a=>{const v=a.map(x=>x.v).filter(Number.isFinite);return v.length?{cur:v.at(-1),min:Math.min(...v),max:Math.max(...v),avg:v.reduce((x,y)=>x+y,0)/v.length,count:v.length}:{cur:null,min:null,max:null,avg:null,count:0}};
+
+const S={
+ latest:null,paused:false,inFlight:false,pollTimer:null,lastFetchAt:0,lastSourceToken:null,
+ histories:new Map(),sessionStart:Date.now(),samples:0,collapsed:new Set(),category:'all',
+ topology:'',fpsKey:null,ftKey:null,draggingKey:null,hoverCharts:new Map(),hoverRatio:new Map(),
+ fpsPref:localStorage.getItem('hpl-v5-fps-source')||'',ftPref:localStorage.getItem('hpl-v5-ft-source')||'',
+ themePref:localStorage.getItem('hpl-v5-theme')||'system',
+ pins:JSON.parse(localStorage.getItem('hpl-v5-pins')||localStorage.getItem('hpl-v4-pins')||'[]'),
+ opts:JSON.parse(localStorage.getItem('hpl-v5-opts')||localStorage.getItem('hpl-v4-opts')||'{}'),
+ pendingImport:null
+};
+
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
+function save(){
+ localStorage.setItem('hpl-v5-pins',JSON.stringify(S.pins));
+ localStorage.setItem('hpl-v5-opts',JSON.stringify(S.opts));
+ localStorage.setItem('hpl-v5-fps-source',S.fpsPref||'');
+ localStorage.setItem('hpl-v5-ft-source',S.ftPref||'');
+ localStorage.setItem('hpl-v5-theme',S.themePref||'system');
+}
+function descriptor(r){return r?{sensor:r.Sensor||'',sensorOriginal:r.SensorOriginal||'',label:r.Label||'',labelOriginal:r.LabelOriginal||'',unit:r.Unit||''}:null}
+function resolveDescriptor(d){
+ if(!d||!S.latest?.Ok)return null;
+ const rs=S.latest.Readings;
+ const exact=rs.find(r=>(r.Sensor===d.sensor&&r.Label===d.label&&r.Unit===d.unit)||(r.SensorOriginal===d.sensorOriginal&&r.LabelOriginal===d.labelOriginal&&r.Unit===d.unit));
+ if(exact)return exact;
+ const byLabel=rs.find(r=>norm(r.Label)===norm(d.label)&&(!d.unit||norm(r.Unit)===norm(d.unit)));
+ if(byLabel)return byLabel;
+ const byOriginal=rs.find(r=>norm(r.LabelOriginal)===norm(d.labelOriginal)&&(!d.unit||norm(r.Unit)===norm(d.unit)));
+ return byOriginal||null;
+}
 function reading(k){return S.latest?.Readings?.find(r=>keyOf(r)===k)||null}
-function find(regexes){if(!S.latest?.Ok)return null;for(const re of regexes){const r=S.latest.Readings.find(x=>re.test(`${x.Sensor||''} ${x.Label||''}`));if(r)return r}return null}
+function ensureOpt(k){const o=S.opts[k]||(S.opts[k]={mode:'current',graph:true,smooth:false});if(o.mode==='all')o.mode='current';return o}
+
+function applyTheme(pref){
+ S.themePref=pref||'system';$('theme').value=S.themePref;
+ const effective=S.themePref==='system'?(matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):S.themePref;
+ document.documentElement.dataset.theme=effective;save();
+ requestAnimationFrame(()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
+}
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',()=>{if(S.themePref==='system')applyTheme('system')});
+
+function classify(r){
+ const t=readingText(r),u=norm(r.Unit);
+ if(u==='fps'||/presentmon|frame time|frametime|framerate|gpu busy|render latency|display latency|present latency/.test(t))return 'gaming';
+ if(/\bgpu\b|graphics processor|hot spot|video engine|d3d|memory controller/.test(t))return 'gpu';
+ if(/\bcpu\b|core effective|core clock|package power|tctl|tdie|ccd|ppt|tdc|edc/.test(t))return 'cpu';
+ if(/physical memory|virtual memory|committed memory|page file|\bram\b|\bvram\b|gpu memory|memory used|memory load/.test(t))return 'memory';
+ return 'other';
+}
+
+function candidateScore(r,type){
+ const t=readingText(r),u=norm(r.Unit);let s=-999;
+ if(type==='fps'){
+  if(u==='fps')s=100;else if(/framerate/.test(t))s=55;else return -999;
+  if(/presentmon/.test(t))s+=50;if(/presented/.test(t))s+=25;if(/\bavg\b|average/.test(t))s+=15;
+  if(/displayed/.test(t))s+=8;if(/minimum|maximum|min|max/.test(t))s-=30;
+ }else{
+  if((u==='ms'||u==='milliseconds')&&/frame ?time|frametime/.test(t))s=100;else if(/frame ?time|frametime/.test(t))s=55;else return -999;
+  if(/presentmon/.test(t))s+=50;if(/\bavg\b|average/.test(t))s+=10;
+  if(/minimum|maximum|min|max/.test(t))s-=25;
+ }
+ return s;
+}
+function candidates(type){return (S.latest?.Readings||[]).map(r=>({r,s:candidateScore(r,type)})).filter(x=>x.s>-999).sort((a,b)=>b.s-a.s).map(x=>x.r)}
+function selectedSource(type){
+ const pref=type==='fps'?S.fpsPref:S.ftPref;
+ if(pref&&reading(pref))return reading(pref);
+ return candidates(type)[0]||null;
+}
+function rebuildSourceSelectors(){
+ if(!S.latest?.Ok)return;
+ for(const [type,id] of [['fps','fpsSource'],['ft','ftSource']]){
+  const el=$(id),old=type==='fps'?S.fpsPref:S.ftPref,items=candidates(type);
+  el.innerHTML='<option value="">Auto detect</option>'+items.map(r=>`<option value="${keyOf(r)}">${esc(r.Sensor)} → ${esc(r.Label)} [${esc(r.Unit)}]</option>`).join('');
+  el.value=old&&reading(old)?old:'';
+ }
+ updateSourceState();
+}
+function updateSourceState(){
+ const fps=selectedSource('fps'),ft=selectedSource('ft');S.fpsKey=fps?keyOf(fps):null;S.ftKey=ft?keyOf(ft):null;
+ const st=$('fpsSourceState');
+ if(fps&&ft){st.className='source-state ok';st.textContent=`FPS: ${fps.Label} • Frame time: ${ft.Label}`}
+ else if(fps){st.className='source-state warn';st.textContent=`FPS found (${fps.Label}), but no frame-time source detected`}
+ else{st.className='source-state warn';st.textContent='No FPS source detected yet — start the game and check HWiNFO PresentMon / FPS readings'}
+}
+
+function findRegex(arr){
+ for(const re of arr){const r=(S.latest?.Readings||[]).find(x=>re.test(readingText(x)));if(r)return r}return null
+}
+function overviewReading(kind){
+ const map={
+  gpu:[/\bgpu core load\b/,/\bgpu utilization\b/],
+  gt:[/\bgpu temperature\b/,/\bgpu hot spot\b/],
+  gp:[/\bgpu power\b/,/\btotal graphics power\b/],
+  gc:[/\bgpu clock\b/,/\bgpu core clock\b/],
+  gbusy:[/\bgpu busy\b/],
+  latency:[/\brender latency\b/,/\bdisplay latency\b/,/\bpresent latency\b/],
+  cpu:[/\btotal cpu usage\b/,/\bcpu total\b/],
+  ct:[/\bcpu tctl tdie\b/,/\bcpu package temperature\b/,/\bcpu temperature\b/],
+  cp:[/\bcpu package power\b/],
+  cc:[/\bcore effective clocks\b.*\bavg\b/,/\baverage effective clock\b/,/\bcore effective clock\b/],
+  ramload:[/\bphysical memory load\b/],
+  ramused:[/\bphysical memory used\b/,/\bmemory used\b/],
+  vram:[/\bgpu memory allocated\b/,/\bdedicated memory usage\b/,/\bgpu memory used\b/],
+  vramload:[/\bgpu memory load\b/,/\bmemory controller load\b/]
+ };
+ return findRegex(map[kind]||[]);
+}
+
 function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
+function addSample(k,v){
+ v=n(v);if(v===null||!k)return;
+ if(!S.histories.has(k))S.histories.set(k,[]);
+ const a=S.histories.get(k),now=Date.now();a.push({t:now,v});
+ const keep=60*60*1000;while(a.length&&now-a[0].t>keep)a.shift();
+}
+function sampleNewSource(){
+ if(!S.latest?.Ok)return;
+ updateSourceState();
+ const token=String(S.latest.PollTimeUnix||'');
+ if(token&&token===S.lastSourceToken)return;
+ S.lastSourceToken=token;S.samples++;
+ const keys=new Set(S.pins);
+ if(S.fpsKey)keys.add(S.fpsKey);if(S.ftKey)keys.add(S.ftKey);
+ for(const k of keys){const r=reading(k);if(r)addSample(k,r.Value)}
+ $('sampleCount').textContent=S.samples;
+}
+function rolling(arr,sec){
+ if(!arr.length)return arr;const out=[];let left=0,sum=0;
+ for(let i=0;i<arr.length;i++){sum+=arr[i].v;while(arr[i].t-arr[left].t>sec*1000){sum-=arr[left].v;left++}out.push({t:arr[i].t,v:sum/(i-left+1)})}
+ return out;
+}
 
-function ensureOpt(k){if(!S.opts[k])S.opts[k]={mode:'all',graph:true,smooth:false};return S.opts[k]}
-function pin(k,index=null){if(!k||S.pins.includes(k))return;ensureOpt(k);if(index===null||index<0||index>S.pins.length)S.pins.push(k);else S.pins.splice(index,0,k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
-function unpin(k){S.pins=S.pins.filter(x=>x!==k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
-function reorder(k,beforeKey=null){const old=S.pins.indexOf(k);if(old>=0)S.pins.splice(old,1);if(beforeKey&&S.pins.includes(beforeKey))S.pins.splice(S.pins.indexOf(beforeKey),0,k);else S.pins.push(k);save();syncPinsStructure();updateDynamic()}
-function setOpt(k,key,val){ensureOpt(k)[key]=val;save();const card=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(card){applyCardPresentation(card,k);drawOneCard(card,k)}}
+function pin(k){if(!reading(k)||S.pins.includes(k))return;S.pins.push(k);ensureOpt(k);save();syncPinsStructure();syncGroupStars();updateDynamic()}
+function unpin(k){S.pins=S.pins.filter(x=>x!==k);save();syncPinsStructure();syncGroupStars()}
+function reorder(k,before){
+ const a=S.pins.filter(x=>x!==k);const i=before?a.indexOf(before):-1;if(i<0)a.push(k);else a.splice(i,0,k);S.pins=a;save();syncPinsStructure();updateDynamic()
+}
+function setMode(k,v){ensureOpt(k).mode=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
+function setGraph(k,v){ensureOpt(k).graph=v;save();const c=document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`);if(c){applyCardPresentation(c,k);drawOneCard(c,k)}}
+function setSmooth(k,v){ensureOpt(k).smooth=v;save();drawOneCard(document.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`),k)}
+window.__unpin=unpin;window.__setMode=setMode;window.__setGraph=setGraph;window.__setSmooth=setSmooth;
 
-function addSample(k,val){val=n(val);if(val===null)return;if(!S.histories.has(k))S.histories.set(k,[]);const a=S.histories.get(k),now=Date.now();a.push({t:now,v:val});const keep=3600e3;while(a.length&&now-a[0].t>keep)a.shift()}
-function sample(){if(!S.latest?.Ok||S.paused)return;S.samples++;const fps=find([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]);const ft=find([/presentmon.*frame time/i,/frame time/i]);if(fps){S.fpsKey=keyOf(fps);addSample(S.fpsKey,fps.Value)}if(ft){S.ftKey=keyOf(ft);addSample(S.ftKey,ft.Value)}for(const k of S.pins){if(k===S.fpsKey||k===S.ftKey)continue;const r=reading(k);if(r)addSample(k,r.Value)}}
+function cardHtml(k,r){
+ const o=ensureOpt(k),cat=classify(r);
+ return `<article class="pin-card" data-key="${k}" draggable="true">
+  <div class="pin-head"><div class="pin-left"><div class="draghandle" title="Drag to reorder">⠿</div><div class="pin-title"><div class="l">${esc(r.Label)}</div><div class="g">${esc(r.Sensor)}</div><span class="catbadge">${cat}</span></div></div>
+   <div class="pin-actions"><button class="iconbtn" onclick="__unpin('${k}')">Unpin</button></div></div>
+  <div class="pin-primary"><div><div class="big" data-pin-primary>—</div><div class="smallmode" data-pin-mode>Current</div></div></div>
+  <div class="statgrid">
+   <div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur">—</div></div>
+   <div class="sbox"><div class="k">Session min</div><div class="v" data-pin-stat="min">—</div></div>
+   <div class="sbox"><div class="k">Session avg</div><div class="v" data-pin-stat="avg">—</div></div>
+   <div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max">—</div></div>
+  </div>
+  <div class="chartbox"><canvas></canvas><div class="chart-legend" data-chartlegend>0 samples</div></div>
+  <div class="pin-foot">
+   <span class="label-mini">Large value</span>
+   <select data-mode onchange="__setMode('${k}',this.value)"><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session avg</option><option value="max">Session max</option></select>
+   <label class="check"><input type="checkbox" data-graph onchange="__setGraph('${k}',this.checked)"> graph</label>
+   <label class="check"><input type="checkbox" data-smooth onchange="__setSmooth('${k}',this.checked)"> 5s avg</label>
+  </div>
+ </article>`;
+}
+function applyCardPresentation(card,k){
+ const o=ensureOpt(k);card.querySelector('[data-mode]').value=o.mode||'current';
+ card.querySelector('[data-graph]').checked=o.graph!==false;card.querySelector('[data-smooth]').checked=!!o.smooth;
+ card.querySelector('.chartbox').classList.toggle('hidden',o.graph===false);
+ card.querySelector('[data-pin-mode]').textContent=o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current';
+}
+function bindCardDnD(card){
+ card.ondragstart=e=>{S.draggingKey=card.dataset.key;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',S.draggingKey)};
+ card.ondragend=()=>{S.draggingKey=null;card.classList.remove('dragging');document.querySelectorAll('.pin-card').forEach(x=>x.classList.remove('drag-target'))};
+ card.ondragover=e=>{e.preventDefault();if(S.draggingKey&&S.draggingKey!==card.dataset.key)card.classList.add('drag-target')};
+ card.ondragleave=()=>card.classList.remove('drag-target');
+ card.ondrop=e=>{e.preventDefault();card.classList.remove('drag-target');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(k&&S.pins.includes(k))reorder(k,card.dataset.key);else if(k)pin(k)}
+}
+function syncPinsStructure(){
+ const host=$('pinHost'),valid=S.pins.filter(k=>reading(k));
+ if(!valid.length){host.className='';host.innerHTML='<div class="empty">Nothing pinned. Use an essential preset, click ★, or drag a sensor row here.</div>';return}
+ host.className='pingrid';
+ const existing=new Map([...host.querySelectorAll('.pin-card')].map(c=>[c.dataset.key,c]));
+ for(const k of valid){
+  const r=reading(k);let c=existing.get(k);
+  if(!c){const t=document.createElement('template');t.innerHTML=cardHtml(k,r).trim();c=t.content.firstElementChild;bindCardDnD(c);bindChartHover(c.querySelector('canvas'),k)}
+  host.appendChild(c);applyCardPresentation(c,k);existing.delete(k);
+ }
+ existing.forEach(c=>c.remove());
+}
 
-function topologySignature(){if(!S.latest?.Ok)return '';return S.latest.Readings.map(r=>`${keyOf(r)}|${r.Sensor}|${r.Label}|${r.Unit}`).join('~')}
-function renderGroupsStructure(force=false){if(!S.latest?.Ok)return;const sig=topologySignature();const q=$('search').value.trim().toLowerCase();const fullSig=sig+'|q='+q;if(!force&&S.topology===fullSig)return;S.topology=fullSig;const grouped=new Map();for(const r of S.latest.Readings){if(q&&!textOf(r).includes(q))continue;const g=r.Sensor||`Sensor ${r.SensorIndex}`;(grouped.get(g)||grouped.set(g,[]).get(g)).push(r)}let html='';for(const [g,rows] of grouped){const closed=S.collapsed.has(g);html+=`<section class="group" data-group="${esc(g)}"><div class="group-head"><div class="group-name">${esc(g)}</div><div class="group-count">${rows.length} readings <span class="chev">${closed?'▸':'▾'}</span></div></div><div class="group-body ${closed?'hidden':''}"><table><thead><tr><th>Pin</th><th>Reading</th><th>Current</th><th>HWiNFO min</th><th>HWiNFO max</th><th>HWiNFO avg</th></tr></thead><tbody>${rows.map(r=>{const k=keyOf(r);return `<tr class="sensor-row" draggable="true" data-key="${k}"><td><button class="star ${S.pins.includes(k)?'on':''}" data-star="${k}">${S.pins.includes(k)?'★':'☆'}</button></td><td class="sensorlabel">${esc(r.Label)}</td><td data-cell="value" data-key="${k}">—</td><td data-cell="min" data-key="${k}">—</td><td data-cell="max" data-key="${k}">—</td><td data-cell="avg" data-key="${k}">—</td></tr>`}).join('')}</tbody></table></div></section>`} $('groups').innerHTML=html||'<div class="empty">No readings match the current search.</div>';bindGroupEvents();updateSensorCells()}
-function bindGroupEvents(){document.querySelectorAll('.group-head').forEach(h=>h.onclick=()=>{const g=h.closest('.group'),name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');if(body.classList.toggle('hidden')){S.collapsed.add(name);chev.textContent='▸'}else{S.collapsed.delete(name);chev.textContent='▾'}});document.querySelectorAll('.star').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.star;S.pins.includes(k)?unpin(k):pin(k)});document.querySelectorAll('.sensor-row').forEach(row=>{row.ondragstart=e=>{S.draggingKey=row.dataset.key;row.classList.add('dragging');e.dataTransfer.effectAllowed='copyMove';e.dataTransfer.setData('text/plain',S.draggingKey)};row.ondragend=()=>{row.classList.remove('dragging');S.draggingKey=null}})}
-function syncGroupStars(){document.querySelectorAll('[data-star]').forEach(b=>{const on=S.pins.includes(b.dataset.star);b.classList.toggle('on',on);b.textContent=on?'★':'☆'})}
-function updateSensorCells(){if(!S.latest?.Ok)return;for(const r of S.latest.Readings){const k=keyOf(r);for(const [field,val] of [['value',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){const el=document.querySelector(`[data-cell="${field}"][data-key="${CSS.escape(k)}"]`);if(el)el.textContent=fmt(val,r.Unit)}}}
-
-function cardHtml(k,r){const o=ensureOpt(k);return `<article class="pin-card" draggable="true" data-key="${k}"><div class="pin-head"><div class="pin-left"><div class="draghandle" title="Drag to reorder">⋮⋮</div><div class="pin-title"><div class="l">${esc(r.Label)}</div><div class="g">${esc(r.Sensor)}</div></div></div><div class="pin-actions"><button class="iconbtn" data-unpin="${k}">Unpin</button></div></div><div class="pin-primary"><div><div class="big" data-pin-primary="${k}">—</div><div class="smallmode" data-pin-mode-label="${k}">Current</div></div></div><div class="statgrid" data-statgrid="${k}"><div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session min</div><div class="v" data-pin-stat="min" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session avg</div><div class="v" data-pin-stat="avg" data-key="${k}">—</div></div><div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max" data-key="${k}">—</div></div></div><div class="chartbox" data-chartbox="${k}"><canvas data-chart="${k}"></canvas><div class="chart-legend" data-chartlegend="${k}">0 samples</div></div><div class="pin-foot"><select data-mode="${k}"><option value="all">All stats</option><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select><label class="check"><input type="checkbox" data-graph="${k}"> graph</label><label class="check"><input type="checkbox" data-smooth="${k}"> 5s avg</label></div></article>`}
-function syncPinsStructure(){const host=$('pinHost');const valid=S.pins.filter(k=>reading(k));if(!valid.length){host.innerHTML='<div class="empty" style="grid-column:1/-1">Nothing pinned. Drag a sensor here, click ☆, or use <b>Pin essentials</b>.</div>';return}const existing=[...host.querySelectorAll('.pin-card')].map(x=>x.dataset.key);if(existing.join('|')===valid.join('|'))return;host.innerHTML=valid.map(k=>cardHtml(k,reading(k))).join('');bindPinEvents();for(const k of valid)applyCardPresentation(host.querySelector(`.pin-card[data-key="${CSS.escape(k)}"]`),k)}
-function bindPinEvents(){document.querySelectorAll('.pin-card').forEach(card=>{const k=card.dataset.key;card.ondragstart=e=>{S.draggingKey=k;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',k)};card.ondragend=()=>{card.classList.remove('dragging');document.querySelectorAll('.drag-target').forEach(x=>x.classList.remove('drag-target'));S.draggingKey=null};card.ondragover=e=>{e.preventDefault();card.classList.add('drag-target');e.dataTransfer.dropEffect='move'};card.ondragleave=()=>card.classList.remove('drag-target');card.ondrop=e=>{e.preventDefault();e.stopPropagation();card.classList.remove('drag-target');const k2=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k2)return;if(!S.pins.includes(k2))pin(k2,S.pins.indexOf(k));else if(k2!==k)reorder(k2,k)};const sel=card.querySelector(`[data-mode="${CSS.escape(k)}"]`);sel.onchange=()=>setOpt(k,'mode',sel.value);const gr=card.querySelector(`[data-graph="${CSS.escape(k)}"]`);gr.onchange=()=>setOpt(k,'graph',gr.checked);const sm=card.querySelector(`[data-smooth="${CSS.escape(k)}"]`);sm.onchange=()=>setOpt(k,'smooth',sm.checked);const un=card.querySelector(`[data-unpin="${CSS.escape(k)}"]`);un.onclick=()=>unpin(k);const canvas=card.querySelector('canvas');bindChartHover(canvas,k)});}
-function applyCardPresentation(card,k){if(!card)return;const o=ensureOpt(k);const sel=card.querySelector('[data-mode]');if(sel&&sel.value!==o.mode)sel.value=o.mode;const graph=card.querySelector('[data-graph]');if(graph)graph.checked=o.graph!==false;const smooth=card.querySelector('[data-smooth]');if(smooth)smooth.checked=!!o.smooth;card.querySelector('[data-statgrid]').classList.toggle('hidden',o.mode!=='all');card.querySelector('[data-chartbox]').classList.toggle('hidden',o.graph===false);const label=card.querySelector('[data-pin-mode-label]');label.textContent=o.mode==='current'?'Current':o.mode==='min'?'Session minimum':o.mode==='avg'?'Session average':o.mode==='max'?'Session maximum':'Current'}
-
-function visibleHistory(k){const a=S.histories.get(k)||[],sec=Number($('window').value)||300,cut=Date.now()-sec*1000;return a.filter(p=>p.t>=cut&&Number.isFinite(p.v))}
-function rolling(points,ms=5000){const out=[];let left=0,sum=0;for(let i=0;i<points.length;i++){sum+=points[i].v;while(points[i].t-points[left].t>ms){sum-=points[left].v;left++}out.push({t:points[i].t,v:sum/(i-left+1)})}return out}
-function drawCanvas(canvas,k,hoverIndex=null){const r=reading(k);if(!r)return;const raw=visibleHistory(k),o=ensureOpt(k),pts=o.smooth?rolling(raw):raw;const box=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1),w=Math.max(1,Math.floor(box.width*dpr)),h=Math.max(1,Math.floor(box.height*dpr));if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}const c=canvas.getContext('2d');c.clearRect(0,0,w,h);if(pts.length<2){S.hoverCharts.set(k,{pts:[],plot:null});return}let vals=pts.map(x=>x.v),lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.10;lo-=pad;hi+=pad;const L=5*dpr,T=5*dpr,R=w-5*dpr,B=h-13*dpr;c.lineWidth=1*dpr;c.strokeStyle='rgba(131,146,168,.15)';for(let i=0;i<4;i++){const y=T+(B-T)*i/3;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()}const t0=pts[0].t,t1=pts.at(-1).t||t0+1;c.strokeStyle='rgba(110,168,255,.95)';c.lineWidth=1.6*dpr;c.beginPath();pts.forEach((p,i)=>{const x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();c.font=`${8*dpr}px Segoe UI`;c.fillStyle='rgba(131,146,168,.78)';c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);if(hoverIndex!==null&&hoverIndex>=0&&hoverIndex<pts.length){const p=pts[hoverIndex],x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);c.strokeStyle='rgba(238,244,251,.40)';c.lineWidth=1*dpr;c.beginPath();c.moveTo(x,T);c.lineTo(x,B);c.stroke();c.fillStyle='rgba(238,244,251,.95)';c.beginPath();c.arc(x,y,3*dpr,0,Math.PI*2);c.fill()}S.hoverCharts.set(k,{pts,plot:{L,R,T,B,t0,t1,lo,hi}})}
-function bindChartHover(canvas,k){canvas.onpointermove=e=>{const meta=S.hoverCharts.get(k);if(!meta?.pts?.length||!meta.plot)return;const rect=canvas.getBoundingClientRect(),x=e.clientX-rect.left,ratio=Math.max(0,Math.min(1,x/Math.max(1,rect.width)));const target=meta.plot.t0+(meta.plot.t1-meta.plot.t0)*ratio;let best=0,bd=Infinity;meta.pts.forEach((p,i)=>{const d=Math.abs(p.t-target);if(d<bd){bd=d;best=i}});drawCanvas(canvas,k,best);const p=meta.pts[best],r=reading(k),tip=$('tooltip');tip.querySelector('.time').textContent=new Date(p.t).toLocaleTimeString();tip.querySelector('.val').textContent=fmt(p.v,r?.Unit||'');tip.style.display='block';let tx=e.clientX+12,ty=e.clientY+12;if(tx+150>innerWidth)tx=e.clientX-155;if(ty+70>innerHeight)ty=e.clientY-75;tip.style.left=tx+'px';tip.style.top=ty+'px'};canvas.onpointerleave=()=>{$('tooltip').style.display='none';drawCanvas(canvas,k,null)}}
-function drawOneCard(card,k){const r=reading(k);if(!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;card.querySelector('[data-pin-primary]').textContent=fmt(primary,r.Unit);for(const [field,val] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]])card.querySelector(`[data-pin-stat="${field}"]`).textContent=fmt(val,r.Unit);card.querySelector('[data-chartlegend]').textContent=`${st.count} samples${o.smooth?' • 5s rolling average':''}`;if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null)}
+function graphColors(){
+ const cs=getComputedStyle(document.documentElement);
+ return {grid:cs.getPropertyValue('--chart-grid').trim(),line:cs.getPropertyValue('--chart-line').trim(),hover:cs.getPropertyValue('--chart-hover').trim(),muted:cs.getPropertyValue('--muted').trim(),text:cs.getPropertyValue('--text').trim()}
+}
+function drawCanvas(canvas,k,ratioOverride=null){
+ if(!canvas)return;const r=reading(k),o=ensureOpt(k);if(!r||o.graph===false)return;
+ const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));
+ if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
+ const c=canvas.getContext('2d');c.clearRect(0,0,w,h);
+ const seconds=Number($('window').value)||300,cut=Date.now()-seconds*1000;
+ let pts=(S.histories.get(k)||[]).filter(p=>p.t>=cut&&Number.isFinite(p.v));if(o.smooth)pts=rolling(pts,5);if(pts.length<2){S.hoverCharts.set(k,{pts,plot:null});return}
+ const vals=pts.map(p=>p.v);let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.10;lo-=pad;hi+=pad;
+ const L=4*dpr,R=w-4*dpr,T=4*dpr,B=h-14*dpr,colors=graphColors();
+ c.strokeStyle=colors.grid;c.lineWidth=1*dpr;for(let i=0;i<3;i++){const y=T+(B-T)*i/2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()}
+ const t0=pts[0].t,t1=pts.at(-1).t||t0+1;c.strokeStyle=colors.line;c.lineWidth=1.6*dpr;c.beginPath();
+ pts.forEach((p,i)=>{const x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
+ c.font=`${8*dpr}px Segoe UI`;c.fillStyle=colors.muted;c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);
+ const ratio=ratioOverride!==null?ratioOverride:S.hoverRatio.get(k);
+ if(ratio!==undefined&&ratio!==null){
+  const target=t0+(t1-t0)*ratio;let bi=0,bd=Infinity;pts.forEach((p,i)=>{const d=Math.abs(p.t-target);if(d<bd){bd=d;bi=i}});
+  const p=pts[bi],x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);
+  c.strokeStyle=colors.hover;c.lineWidth=1*dpr;c.beginPath();c.moveTo(x,T);c.lineTo(x,B);c.stroke();c.fillStyle=colors.text;c.beginPath();c.arc(x,y,3*dpr,0,Math.PI*2);c.fill();
+ }
+ S.hoverCharts.set(k,{pts,plot:{L,R,T,B,t0,t1,lo,hi}});
+}
+function bindChartHover(canvas,k){
+ canvas.onpointermove=e=>{
+  const rect=canvas.getBoundingClientRect(),ratio=Math.max(0,Math.min(1,(e.clientX-rect.left)/Math.max(1,rect.width)));S.hoverRatio.set(k,ratio);drawCanvas(canvas,k,ratio);
+  const meta=S.hoverCharts.get(k);if(!meta?.pts?.length)return;const target=meta.plot.t0+(meta.plot.t1-meta.plot.t0)*ratio;let best=meta.pts[0],bd=Infinity;
+  for(const p of meta.pts){const d=Math.abs(p.t-target);if(d<bd){bd=d;best=p}}
+  const r=reading(k),tip=$('tooltip');tip.querySelector('.time').textContent=new Date(best.t).toLocaleTimeString();tip.querySelector('.val').textContent=fmt(best.v,r?.Unit||'');tip.style.display='block';
+  let tx=e.clientX+12,ty=e.clientY+12;if(tx+160>innerWidth)tx=e.clientX-165;if(ty+75>innerHeight)ty=e.clientY-80;tip.style.left=tx+'px';tip.style.top=ty+'px';
+ };
+ canvas.onpointerleave=()=>{S.hoverRatio.delete(k);$('tooltip').style.display='none';drawCanvas(canvas,k,null)}
+}
+function drawOneCard(card,k){
+ const r=reading(k);if(!card||!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);
+ const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;
+ card.querySelector('[data-pin-primary]').textContent=fmt(primary,r.Unit);
+ for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]])card.querySelector(`[data-pin-stat="${f}"]`).textContent=fmt(v,r.Unit);
+ card.querySelector('[data-chartlegend]').textContent=`${st.count} source samples${o.smooth?' • 5s rolling average':''}`;
+ if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null);
+}
 function updatePins(){syncPinsStructure();document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key))}
 
-function updateOverview(){const fps=find([/presentmon.*framerate presented.*avg/i,/framerate presented.*avg/i,/framerate presented/i]),ft=find([/presentmon.*frame time/i,/frame time/i]),gpu=find([/gpu core load/i,/gpu utilization/i]),gt=find([/^gpu.*temperature/i]),cpu=find([/total cpu usage/i,/cpu total/i]),ct=find([/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu.*temperature/i]);if(fps)S.fpsKey=keyOf(fps);if(ft)S.ftKey=keyOf(ft);for(const [id,r] of [['ovFps',fps],['ovFt',ft],['ovGpu',gpu],['ovGt',gt],['ovCpu',cpu],['ovCt',ct]])$(id).textContent=r?fmt(r.Value,r.Unit):'—'}
-function updateFps(){const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);const set=(id,x)=>$(id).textContent=x;if(fv.length){set('fpsAvg',fmt(fv.reduce((a,b)=>a+b,0)/fv.length,'FPS'));set('fpsP5',fv.length>=20?fmt(qtile(fv,.05),'FPS'):'collecting…');set('fpsP1',fv.length>=50?fmt(qtile(fv,.01),'FPS'):'collecting…');set('fpsP01',fv.length>=500?fmt(qtile(fv,.001),'FPS'):'collecting…');set('fpsRange',`${fmt(Math.min(...fv),'')} / ${fmt(Math.max(...fv),' FPS')}`)}else['fpsAvg','fpsP5','fpsP1','fpsP01','fpsRange'].forEach(id=>set(id,'—'));if(tv.length){set('ftP95',tv.length>=20?fmt(qtile(tv,.95),'ms'):'collecting…');set('ftP99',tv.length>=50?fmt(qtile(tv,.99),'ms'):'collecting…');set('ftMax',fmt(Math.max(...tv),'ms'))}else['ftP95','ftP99','ftMax'].forEach(id=>set(id,'—'))}
-function updateStatus(){if(!S.latest?.Ok){$('status').className='badge offline';$('status').textContent='NO DATA';return}const age=sourceAgeMs();let cls='live',txt=S.paused?'PAUSED':'LIVE';if(age!==null&&age>Math.max(3000,(S.latest.PollingPeriodMs||1000)*3)){cls='stale';txt='SOURCE STALE'}$('status').className='badge '+cls;$('status').textContent=txt;$('age').textContent=S.lastFetchAt?`browser ${Math.round(Date.now()-S.lastFetchAt)} ms ago`:'—';$('sourcePoll').textContent=S.latest.PollingPeriodMs?`${S.latest.PollingPeriodMs} ms`:'—';$('sourceUpdate').textContent=age===null?'—':age<1500?'now':`${(age/1000).toFixed(1)} s ago`;if(age!==null&&age>3000)$('sourceUpdate').style.color='var(--warn)';else $('sourceUpdate').style.color=''}
-function updateDynamic(){if(!S.latest?.Ok)return;updateOverview();updatePins();updateFps();updateSensorCells();updateStatus();$('sampleCount').textContent=S.samples}
+function updateOverview(){
+ const fps=selectedSource('fps'),ft=selectedSource('ft');
+ const vals={
+  ovFps:fps,ovFt:ft,ovGpuBusy:overviewReading('gbusy'),ovLatency:overviewReading('latency'),
+  ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGp:overviewReading('gp'),ovGc:overviewReading('gc'),
+  ovCpu:overviewReading('cpu'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),ovCc:overviewReading('cc'),
+  ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload')
+ };
+ for(const [id,r] of Object.entries(vals))$(id).textContent=r?fmt(r.Value,r.Unit):'—';
+}
+function updateFps(){
+ const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);
+ const set=(id,x)=>$(id).textContent=x;
+ if(fv.length){
+  set('fpsAvg',fmt(fv.reduce((a,b)=>a+b,0)/fv.length,'FPS'));set('fpsP5',fv.length>=20?fmt(qtile(fv,.05),'FPS'):'collecting…');
+  set('fpsP1',fv.length>=50?fmt(qtile(fv,.01),'FPS'):'collecting…');set('fpsP01',fv.length>=500?fmt(qtile(fv,.001),'FPS'):'collecting…');
+  set('fpsRange',`${fmt(Math.min(...fv),'')} / ${fmt(Math.max(...fv),' FPS')}`);
+ }else['fpsAvg','fpsP5','fpsP1','fpsP01','fpsRange'].forEach(id=>set(id,'—'));
+ if(tv.length){set('ftP95',tv.length>=20?fmt(qtile(tv,.95),'ms'):'collecting…');set('ftP99',tv.length>=50?fmt(qtile(tv,.99),'ms'):'collecting…');set('ftMax',fmt(Math.max(...tv),'ms'))}
+ else['ftP95','ftP99','ftMax'].forEach(id=>set(id,'—'));
+}
 
-async function fetchOnce(){if(S.paused||S.inFlight)return;S.inFlight=true;try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),4000);const res=await fetch(`/api/sensors?_=${Date.now()}`,{cache:'no-store',signal:ctl.signal});clearTimeout(to);if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();S.latest=data;S.lastFetchAt=Date.now();if(!data.Ok){$('error').innerHTML=`<div class="err">${esc(data.Error||'HWiNFO data unavailable')}</div>`;updateStatus();return}$('error').innerHTML='';sample();renderGroupsStructure(false);updateDynamic();$('meta').textContent=`${data.Readings.length} live readings • Shared Memory v${data.Version}.${data.Revision}`;}catch(e){$('error').innerHTML=`<div class="err">Dashboard polling error: ${esc(e.message)}. Local server may still be running.</div>`;$('status').className='badge offline';$('status').textContent='OFFLINE'}finally{S.inFlight=false}}
+function groupTopology(){
+ if(!S.latest?.Ok)return '';return S.latest.Readings.map(r=>`${keyOf(r)}|${r.Sensor}|${r.Label}|${r.Unit}`).join('~')
+}
+function visibleReadings(){
+ const q=norm($('search').value);
+ return (S.latest?.Readings||[]).filter(r=>{
+  if(q&&!readingText(r).includes(q))return false;
+  const cat=classify(r);return S.category==='all'||cat===S.category;
+ })
+}
+function rowHtml(r){
+ const k=keyOf(r),on=S.pins.includes(k);
+ return `<tr class="sensor-row" draggable="true" data-key="${k}">
+  <td><button class="star ${on?'on':''}" data-star="${k}" title="${on?'Unpin':'Pin'}">${on?'★':'☆'}</button></td>
+  <td class="sensorlabel">${esc(r.Label)} <span class="catbadge">${classify(r)}</span></td>
+  <td data-cell="${k}:cur">${esc(fmt(r.Value,r.Unit))}</td><td data-cell="${k}:min">${esc(fmt(r.Min,r.Unit))}</td><td data-cell="${k}:max">${esc(fmt(r.Max,r.Unit))}</td><td data-cell="${k}:avg">${esc(fmt(r.Avg,r.Unit))}</td>
+ </tr>`;
+}
+function renderGroupsStructure(force=false){
+ if(!S.latest?.Ok)return;const topo=groupTopology(),sig=`${topo}|${S.category}|${$('search').value}`;
+ if(!force&&S.topology===sig)return;S.topology=sig;
+ const grouped=new Map();for(const r of visibleReadings()){const g=r.Sensor||`Sensor ${r.SensorIndex}`;(grouped.get(g)||grouped.set(g,[]).get(g)).push(r)}
+ let html='';for(const [g,rows] of grouped){const closed=S.collapsed.has(g);html+=`<section class="group" data-group="${esc(g)}"><div class="group-head"><div class="group-name">${esc(g)}</div><div class="group-count">${rows.length} readings <span class="chev">${closed?'▸':'▾'}</span></div></div><div class="group-body ${closed?'hidden':''}"><table><thead><tr><th>Pin</th><th>Reading</th><th>Current</th><th>HWiNFO min</th><th>HWiNFO max</th><th>HWiNFO avg</th></tr></thead><tbody>${rows.map(rowHtml).join('')}</tbody></table></div></section>`}
+ $('groups').innerHTML=html||'<div class="empty">No readings match this filter.</div>';
+ document.querySelectorAll('.group-head').forEach(h=>h.onclick=()=>{const g=h.closest('.group'),name=g.dataset.group,body=g.querySelector('.group-body'),closed=body.classList.toggle('hidden');closed?S.collapsed.add(name):S.collapsed.delete(name);g.querySelector('.chev').textContent=closed?'▸':'▾'});
+ document.querySelectorAll('[data-star]').forEach(b=>b.onclick=e=>{e.stopPropagation();const k=b.dataset.star;S.pins.includes(k)?unpin(k):pin(k)});
+ document.querySelectorAll('.sensor-row').forEach(row=>{row.ondragstart=e=>{S.draggingKey=row.dataset.key;row.classList.add('dragging');e.dataTransfer.setData('text/plain',S.draggingKey);e.dataTransfer.effectAllowed='copy'};row.ondragend=()=>{S.draggingKey=null;row.classList.remove('dragging')}});
+}
+function updateSensorCells(){
+ if(!S.latest?.Ok)return;
+ for(const r of S.latest.Readings){const k=keyOf(r);for(const [f,v] of [['cur',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){const el=document.querySelector(`[data-cell="${CSS.escape(k+':'+f)}"]`);if(el)el.textContent=fmt(v,r.Unit)}}
+}
+function syncGroupStars(){document.querySelectorAll('[data-star]').forEach(b=>{const on=S.pins.includes(b.dataset.star);b.classList.toggle('on',on);b.textContent=on?'★':'☆';b.title=on?'Unpin':'Pin'})}
+
+function updateStatus(){
+ if(!S.latest?.Ok){$('status').className='badge offline';$('status').textContent='NO DATA';return}
+ const age=sourceAgeMs();let cls='live',txt=S.paused?'PAUSED':'LIVE';
+ if(age!==null&&age>Math.max(3000,(S.latest.PollingPeriodMs||1000)*3)){cls='stale';txt='SOURCE STALE'}
+ $('status').className='badge '+cls;$('status').textContent=txt;$('age').textContent=S.lastFetchAt?`browser ${Math.round(Date.now()-S.lastFetchAt)} ms ago`:'—';
+ $('sourcePoll').textContent=S.latest.PollingPeriodMs?`${S.latest.PollingPeriodMs} ms`:'—';$('sourceUpdate').textContent=age===null?'—':age<1500?'now':`${(age/1000).toFixed(1)} s ago`;
+ $('sourceUpdate').style.color=age!==null&&age>3000?'var(--warn)':'';
+}
+function updateDynamic(){
+ if(!S.latest?.Ok)return;updateSourceState();updateOverview();updatePins();updateFps();updateSensorCells();updateStatus();$('sampleCount').textContent=S.samples
+}
+
+const PRESETS={
+ gaming:[
+  r=>candidateScore(r,'fps')>0,r=>candidateScore(r,'ft')>0,
+  r=>/gpu busy/.test(readingText(r)),r=>/render latency|display latency|present latency/.test(readingText(r))
+ ],
+ gpu:[
+  r=>/gpu core load/.test(readingText(r)),r=>/gpu temperature/.test(readingText(r)),r=>/gpu hot spot/.test(readingText(r)),
+  r=>/gpu power|total graphics power/.test(readingText(r)),r=>/gpu clock/.test(readingText(r)),
+  r=>/gpu memory allocated|dedicated memory usage|gpu memory used/.test(readingText(r))
+ ],
+ cpu:[
+  r=>/total cpu usage/.test(readingText(r)),r=>/cpu tctl tdie|cpu package temperature/.test(readingText(r)),
+  r=>/cpu package power/.test(readingText(r)),r=>/core effective clocks.*avg|average effective clock/.test(readingText(r)),
+  r=>/max cpu thread usage|maximum cpu core usage/.test(readingText(r))
+ ],
+ memory:[
+  r=>/physical memory load/.test(readingText(r)),r=>/physical memory used/.test(readingText(r)),
+  r=>/available physical memory/.test(readingText(r)),r=>/committed memory/.test(readingText(r)),
+  r=>/gpu memory allocated|dedicated memory usage|gpu memory used/.test(readingText(r))
+ ]
+};
+function applyPreset(which){
+ if(!S.latest?.Ok)return;const cats=which==='all'?['gaming','gpu','cpu','memory']:[which];
+ for(const cat of cats){for(const test of PRESETS[cat]||[]){const r=S.latest.Readings.find(test);if(r&&!S.pins.includes(keyOf(r)))S.pins.push(keyOf(r))}}
+ save();syncPinsStructure();syncGroupStars();updateDynamic();$('dropzone').classList.add('flash');setTimeout(()=>$('dropzone').classList.remove('flash'),450)
+}
+
+function collapseAll(collapse){document.querySelectorAll('.group').forEach(g=>{const name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');body.classList.toggle('hidden',collapse);chev.textContent=collapse?'▸':'▾';collapse?S.collapsed.add(name):S.collapsed.delete(name)})}
+function applyAllGraphs(on){for(const k of S.pins)ensureOpt(k).graph=on;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
+function applyAllMode(){const mode=$('globalMode').value;for(const k of S.pins)ensureOpt(k).mode=mode;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
+function resetSession(){if(!confirm('Reset local graph history, session min/max/average and sampled FPS percentiles? HWiNFO built-in Min/Max/Avg remain untouched.'))return;S.histories=new Map();S.samples=0;S.sessionStart=Date.now();S.lastSourceToken=null;$('sampleCount').textContent='0';updateDynamic();toast('Session history reset')}
+function clearPins(){if(!S.pins.length)return;if(!confirm('Remove all pinned cards?'))return;S.pins=[];save();syncPinsStructure();syncGroupStars()}
+function exportCsv(){
+ const keys=[...new Set([...S.pins,S.fpsKey,S.ftKey].filter(Boolean))],rows=['timestamp,sensor,label,value,unit'];
+ for(const k of keys){const r=reading(k);if(!r)continue;for(const p of S.histories.get(k)||[]){const q=s=>`"${String(s??'').replaceAll('"','""')}"`;rows.push([new Date(p.t).toISOString(),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','))}}
+ downloadBlob(rows.join('\n'),'text/csv',`hwinfo-session-${stamp()}.csv`)
+}
+function stamp(){return new Date().toISOString().replace(/[:.]/g,'-')}
+function downloadBlob(content,type,name){const blob=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+
+function exportSetup(){
+ const pinItems=S.pins.map(k=>{const r=reading(k);if(!r)return null;return {reading:descriptor(r),options:ensureOpt(k)}}).filter(Boolean);
+ const cfg={
+  schema:'hwinfo-performance-lab-setup',version:5,exportedAt:new Date().toISOString(),
+  ui:{theme:S.themePref,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category},
+  pins:pinItems,
+  sources:{fps:S.fpsPref?descriptor(reading(S.fpsPref)):null,frameTime:S.ftPref?descriptor(reading(S.ftPref)):null}
+ };
+ downloadBlob(JSON.stringify(cfg,null,2),'application/json',`hwinfo-performance-lab-setup-${stamp()}.json`);toast('Dashboard setup exported')
+}
+function applyImportedSetup(cfg){
+ if(!cfg||cfg.schema!=='hwinfo-performance-lab-setup'){toast('This is not a Performance Lab setup file');return}
+ if(!S.latest?.Ok){S.pendingImport=cfg;toast('Setup loaded; waiting for HWiNFO data');return}
+ const pins=[],opts={};let unresolved=0;
+ for(const item of cfg.pins||[]){const r=resolveDescriptor(item.reading);if(!r){unresolved++;continue}const k=keyOf(r);pins.push(k);opts[k]={mode:item.options?.mode==='all'?'current':(item.options?.mode||'current'),graph:item.options?.graph!==false,smooth:!!item.options?.smooth}}
+ S.pins=pins;S.opts=opts;
+ if(cfg.ui?.graphWindow)$('window').value=String(cfg.ui.graphWindow);
+ if(cfg.ui?.clientPoll)$('clientPoll').value=String(cfg.ui.clientPoll);
+ if(cfg.ui?.category){S.category=cfg.ui.category;setFilterButtons()}
+ if(cfg.ui?.theme)applyTheme(cfg.ui.theme);
+ const fr=resolveDescriptor(cfg.sources?.fps),tr=resolveDescriptor(cfg.sources?.frameTime);S.fpsPref=fr?keyOf(fr):'';S.ftPref=tr?keyOf(tr):'';
+ save();rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();updateDynamic();schedulePoll();
+ toast(`Setup imported${unresolved?` • ${unresolved} sensor(s) not found on this PC`:''}`)
+}
+async function importSetupFile(file){try{const cfg=JSON.parse(await file.text());applyImportedSetup(cfg)}catch(e){toast('Could not import setup: '+e.message)}finally{$('importFile').value=''}}
+
+function bindGlobalDnD(){
+ const dz=$('dropzone');for(const el of [dz,$('pinHost')]){el.ondragover=e=>{e.preventDefault();dz.classList.add('dragover');e.dataTransfer.dropEffect=S.pins.includes(S.draggingKey)?'move':'copy'};el.ondragleave=e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('dragover')};el.ondrop=e=>{e.preventDefault();dz.classList.remove('dragover');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k)return;S.pins.includes(k)?reorder(k,null):pin(k)}}}
+
+function setFilterButtons(){document.querySelectorAll('[data-filter]').forEach(b=>b.classList.toggle('active',b.dataset.filter===S.category))}
+function onTopologyChanged(){
+ rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();
+ if(S.pendingImport){const cfg=S.pendingImport;S.pendingImport=null;applyImportedSetup(cfg)}
+}
+async function fetchOnce(){
+ if(S.paused||S.inFlight)return;S.inFlight=true;
+ try{
+  const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),4000);const res=await fetch(`/api/sensors?_=${Date.now()}`,{cache:'no-store',signal:ctl.signal});clearTimeout(to);
+  if(!res.ok)throw new Error(`HTTP ${res.status}`);const data=await res.json();const previousTopo=S.latest?.Ok?groupTopology():'';
+  S.latest=data;S.lastFetchAt=Date.now();
+  if(!data.Ok){$('error').innerHTML=`<div class="err">${esc(data.Error||'HWiNFO data unavailable')}</div>`;updateStatus();return}
+  $('error').innerHTML='';
+  const newTopo=groupTopology();if(newTopo!==previousTopo)onTopologyChanged();
+  sampleNewSource();renderGroupsStructure(false);updateDynamic();$('meta').textContent=`${data.Readings.length} live readings • Shared Memory v${data.Version}.${data.Revision}`;
+ }catch(e){$('error').innerHTML=`<div class="err">Dashboard polling error: ${esc(e.message)}. Local server may still be running.</div>`;$('status').className='badge offline';$('status').textContent='OFFLINE'}
+ finally{S.inFlight=false}
+}
 function schedulePoll(){clearTimeout(S.pollTimer);const delay=Number($('clientPoll').value)||500;S.pollTimer=setTimeout(async()=>{await fetchOnce();schedulePoll()},delay)}
 
-function pinEssentials(){if(!S.latest?.Ok)return;const patterns=[/presentmon.*framerate presented.*avg/i,/presentmon.*frame time/i,/gpu core load/i,/^gpu.*temperature/i,/^gpu.*power/i,/gpu.*clock/i,/gpu memory.*allocated/i,/gpu memory usage/i,/total cpu usage/i,/cpu \(tctl\/tdie\)/i,/cpu package.*temperature/i,/cpu package power/i,/core effective clocks.*avg/i,/physical memory load/i];for(const re of patterns){const r=S.latest.Readings.find(x=>re.test(`${x.Sensor||''} ${x.Label||''}`));if(r&&!S.pins.includes(keyOf(r)))S.pins.push(keyOf(r))}save();syncPinsStructure();syncGroupStars();updateDynamic();$('dropzone').classList.add('flash');setTimeout(()=>$('dropzone').classList.remove('flash'),450)}
-function collapseAll(collapse){document.querySelectorAll('.group').forEach(g=>{const name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');body.classList.toggle('hidden',collapse);chev.textContent=collapse?'▸':'▾';collapse?S.collapsed.add(name):S.collapsed.delete(name)})}
-function applyAllGraphs(on){for(const k of S.pins){ensureOpt(k).graph=on}save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
-function applyAllMode(){const mode=$('globalMode').value;for(const k of S.pins)ensureOpt(k).mode=mode;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
-function resetSession(){if(!confirm('Reset local session history, graphs, session min/max/average and sampled FPS percentiles? HWiNFO built-in statistics are left untouched.'))return;S.histories=new Map();S.samples=0;S.sessionStart=Date.now();$('sampleCount').textContent='0';updateDynamic()}
-function clearPins(){if(!S.pins.length)return;if(!confirm('Remove all pinned cards?'))return;S.pins=[];save();syncPinsStructure();syncGroupStars()}
-function exportCsv(){const keys=[...new Set([...S.pins,S.fpsKey,S.ftKey].filter(Boolean))];const rows=['timestamp,sensor,label,value,unit'];for(const k of keys){const r=reading(k);if(!r)continue;for(const p of S.histories.get(k)||[]){const q=s=>`"${String(s??'').replaceAll('"','""')}"`;rows.push([new Date(p.t).toISOString(),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','))}}const blob=new Blob([rows.join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`hwinfo-performance-${new Date().toISOString().replace(/[:.]/g,'-')}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-
-function bindGlobalDnD(){const dz=$('dropzone');for(const el of [dz,$('pinHost')]){el.ondragover=e=>{e.preventDefault();dz.classList.add('dragover');e.dataTransfer.dropEffect=S.pins.includes(S.draggingKey)?'move':'copy'};el.ondragleave=e=>{if(!dz.contains(e.relatedTarget))dz.classList.remove('dragover')};el.ondrop=e=>{e.preventDefault();dz.classList.remove('dragover');const k=e.dataTransfer.getData('text/plain')||S.draggingKey;if(!k)return;S.pins.includes(k)?reorder(k,null):pin(k)}}}
-
-$('search').addEventListener('input',()=>renderGroupsStructure(true));
+$('search').addEventListener('input',()=>{S.topology='';renderGroupsStructure(true)});
 $('window').addEventListener('change',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
 $('clientPoll').addEventListener('change',schedulePoll);
-$('essentials').onclick=pinEssentials;
+$('theme').addEventListener('change',e=>applyTheme(e.target.value));
+$('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();updateDynamic()});
+$('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();updateDynamic()});
+document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
 $('pause').onclick=()=>{S.paused=!S.paused;$('pause').textContent=S.paused?'Resume':'Pause';updateStatus();if(!S.paused){fetchOnce();schedulePoll()}};
-$('reset').onclick=resetSession;$('export').onclick=exportCsv;
+$('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
 $('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
 $('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
 $('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
-bindGlobalDnD();
+$('exportSetup').onclick=exportSetup;$('importSetup').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files?.[0])importSetupFile(e.target.files[0])};
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.category=b.dataset.filter;setFilterButtons();S.topology='';renderGroupsStructure(true)});
+bindGlobalDnD();applyTheme(S.themePref);setFilterButtons();
+
 setInterval(()=>{const s=Math.floor((Date.now()-S.sessionStart)/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;$('elapsed').textContent=h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;updateStatus()},500);
 window.addEventListener('resize',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
 fetchOnce();schedulePoll();

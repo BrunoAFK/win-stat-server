@@ -1,46 +1,73 @@
-HWiNFO PERFORMANCE LAB v4
+HWiNFO PERFORMANCE LAB v5
 =========================
-
-WHAT THIS VERSION FIXES
------------------------
-- Dashboard updates values in place instead of rebuilding cards every poll.
-  Open dropdowns therefore stay open during refresh.
-- Browser polling defaults to 500 ms and can be changed to 250 ms / 500 ms / 1 s / 2 s.
-- Live/stale indicator shows whether the browser is updating AND whether HWiNFO's own
-  shared-memory poll timestamp is advancing.
-- Chart hover shows the nearest sample timestamp and exact value.
-- Pinned cards support drag-and-drop reordering.
-- Sensor rows can be dragged into the pinned area.
-- Global controls:
-    Expand all sensor groups
-    Collapse all sensor groups
-    Graphs on/off for every pin
-    Apply one display mode to all pins
-    Clear all pins
-- Per-card controls are persistent and are not recreated on each poll.
-- Optional 5-second rolling-average graph per card.
-- Reset Session clears dashboard-owned history/min/max/average/percentiles only.
-- CSV export includes pinned history plus FPS/frame-time history.
-- Pinned order and card options are saved in browser localStorage.
-
-FPS ANALYSIS
-------------
-The P5/P1/P0.1 FPS and frame-time P95/P99 shown here are calculated from HWiNFO
-polling samples. They are useful for remote troubleshooting and trends, but are NOT
-the same as per-frame PresentMon 1% low / 0.1% low statistics.
 
 SETUP
 -----
 1. Start HWiNFO in Sensors-only mode.
 2. Enable HWiNFO -> Settings -> Shared Memory Support.
-3. Run START-PERFORMANCE-LAB.bat
+3. Run START-PERFORMANCE-LAB.bat.
 4. Open http://localhost:8080
-5. When local access works, run:
-       tmole.exe 8080
-6. Open the generated HTTPS URL remotely.
+5. After local testing works, run: tmole.exe 8080
 
-TUNNEL NOTE
------------
-The bridge accepts localhost on IPv4 and IPv6 so Windows localhost resolution works
-with Tunnelmole. Direct non-loopback access is rejected by the bridge; Tunnelmole is
-the public-facing layer.
+V5 HIGHLIGHTS
+-------------
+- Robust FPS / frame-time source detection.
+- Manual FPS source and frame-time source selectors.
+- Session FPS analysis now records ONE sample per HWiNFO source update, not one
+  duplicate sample per browser refresh.
+- Essential presets split into:
+    Gaming
+    GPU
+    CPU
+    Memory
+    All essentials
+- Category overview for Gaming / GPU / CPU / Memory.
+- Category filters in the full HWiNFO sensor browser.
+- Pinned-card dropdown changes ONLY the large headline value.
+  Current / Session Min / Session Avg / Session Max always stay visible.
+- Hoverable live graphs with exact sampled time/value.
+- Drag and drop:
+    sensor -> pinned dashboard
+    pinned card -> reorder
+- Expand all / Collapse all.
+- Global graph on/off.
+- Global large-value mode.
+- Dark / Light / System theme.
+- Export / Import dashboard setup as JSON.
+- Exported setup stores sensor names/labels, not just internal numeric IDs, so
+  importing on another PC can remap matching HWiNFO readings automatically.
+- Export setup includes:
+    pin list and order
+    per-card mode / graph / smoothing
+    FPS and frame-time source overrides
+    graph window
+    browser polling interval
+    theme
+    sensor category filter
+- Export session telemetry to CSV.
+- Reset session clears local graph/statistics/percentile history without touching
+  HWiNFO's own built-in Min/Max/Avg counters.
+
+FPS NOTE
+--------
+The FPS percentiles in this dashboard are percentiles of HWiNFO polling samples.
+They are useful for remote troubleshooting and trends, but they are NOT exact
+per-frame 1% low / 0.1% low statistics. Exact lows require raw PresentMon frame
+events, which can be integrated separately later.
+
+CROSS-PC SETUP
+--------------
+On the configured PC:
+  Export setup -> save JSON.
+
+On another PC:
+  Start HWiNFO + Performance Lab -> Import setup -> choose JSON.
+
+The importer first tries exact Sensor + Label + Unit matching, then falls back
+to label-based matching. Hardware-specific sensors that do not exist on the new
+PC are skipped and the dashboard reports how many could not be mapped.
+
+NETWORKING
+----------
+The server supports Windows localhost over both IPv4 and IPv6 for Tunnelmole,
+while rejecting direct non-loopback clients. Tunnelmole remains the public layer.
