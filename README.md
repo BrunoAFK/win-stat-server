@@ -1,112 +1,90 @@
-HWiNFO PERFORMANCE LAB v7.0
-===========================
+# HWiNFO Performance Lab
 
-ANALYSIS-FIRST EXPORT
----------------------
-V7 adds a canonical telemetry stream that is collected independently of the
-pinned dashboard.
+A lightweight Windows dashboard for inspecting live HWiNFO telemetry in a web browser. Performance Lab reads HWiNFO shared memory directly and presents gaming, CPU, GPU, memory, and PresentMon metrics without requiring a separate monitoring service.
 
-This means important diagnostic readings are exported even if the user never
-pinned them.
+The current release is **v7.1.0**.
 
-Canonical telemetry includes:
-- FPS / Frame Time
-- CPU Busy / Wait
-- GPU Busy / Wait
-- GPU Latency / Display Latency
-- GPU utilization / temperature / hotspot / power / clocks / fan
-- GPU power / temperature / current / voltage limit indicators when exposed
-- CPU total / max thread / temperature / package power / effective clock
-- CPU Thermal / PPT / TDC / EDC limit utilization
-- HTC / PROCHOT / PROCHOT EXT actual throttle signals
-- RAM / VRAM / pagefile / memory errors
+## Features
 
-EXPORT AI ANALYSIS JSON
------------------------
-Session -> Export AI analysis JSON
+- Live readings for every sensor exposed through HWiNFO shared memory
+- Gaming, GPU, CPU, and memory overview panels
+- Pinned telemetry cards with session statistics and interactive graphs
+- Non-destructive laps with current-lap, historical-lap, and full-session views
+- FPS and frame-time analysis based on HWiNFO source updates
+- Configurable target FPS, health indicators, themes, and typography
+- Portable dashboard configuration through JSON export/import
+- Wide analysis CSV export and structured AI analysis JSON
+- Mapping diagnostics that reject ambiguous or semantically incorrect sensors
+- Local IPv4 and IPv6 access with non-loopback requests rejected
 
-The JSON contains:
-- selected scope (current lap / historical lap / all session)
-- start/end timestamps
-- target FPS and frame budget
-- HWiNFO polling interval
-- browser polling interval
-- detected CPU / GPU names
-- exact HWiNFO source mapping for every canonical metric
-- summary statistics
-- lap metadata
-- interpretation notes
-- all canonical telemetry samples
+## Requirements
 
-Important notes explicitly tell an AI that:
-- percentiles are HWiNFO polling-sample percentiles, not true per-frame lows
-- PPT/TDC/EDC are limit-utilization values, not "throttling percentages"
-- HTC/PROCHOT and explicit GPU Limited readings are the actual status signals
+- Windows
+- HWiNFO64 running in Sensors-only mode
+- **Shared Memory Support** enabled in HWiNFO settings
+- PowerShell with permission to run the included script
+- A modern web browser
 
-WIDE ANALYSIS CSV
------------------
-Session -> Export analysis telemetry CSV
+## Quick start
 
-CSV is now wide-format:
-one row = one HWiNFO source update.
+1. Start HWiNFO64 in Sensors-only mode.
+2. Enable **Settings → Shared Memory Support**.
+3. Run `START-PERFORMANCE-LAB.bat`.
+4. Open <http://localhost:8080>.
 
-Example columns:
-timestamp_iso
-elapsed_ms
-lap_id
-target_fps
-hwinfo_poll_ms
-fps
-frame_time_ms
-cpu_busy_ms
-gpu_busy_ms
-gpu_util_pct
-gpu_temp_c
-gpu_power_w
-cpu_max_thread_pct
-cpu_package_power_w
-cpu_ppt_limit_pct
-cpu_tdc_limit_pct
-cpu_edc_limit_pct
-...
+You can also start the server directly:
 
-This is substantially easier for spreadsheets, Python and AI tools to analyse
-than the old long-format pinned-sensor CSV.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\hwinfo-performance-lab.ps1
+```
 
-SCOPE ANALYSIS
---------------
-The FPS section now includes a compact Scope analysis panel showing:
-- median FPS
-- P1 FPS
-- frame-time P95
-- target miss percentage
-- CPU/GPU Busy median and P95
-- GPU utilization median
-- percentage of GPU samples >=95%
-- GPU max temperature
-- GPU median power
-- CPU max-thread P95
-- CPU max temperature
-- CPU median package power
-- PPT / TDC / EDC maximums
+To use another port:
 
-All metrics follow the currently selected lap/session scope.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\hwinfo-performance-lab.ps1 -Port 8081
+```
 
-DATA COLLECTION
----------------
-Canonical analysis telemetry is collected once per actual HWiNFO source update,
-not once per browser refresh.
+The live sensor endpoint is available at `http://127.0.0.1:8080/api/sensors`.
 
-Pinned telemetry remains independent.
+## Remote access
 
-Reset FPS analysis:
-- resets only FPS-analysis samples
+The server accepts only loopback clients. If temporary remote access is required, place a trusted tunnel in front of the local port, for example:
 
-Reset laps:
-- resets only lap markers
+```powershell
+tmole.exe 8080
+```
 
-Reset entire session:
-- clears pinned history
-- clears canonical analysis telemetry
-- clears FPS analysis
-- resets laps and session timer
+Treat the generated URL as sensitive and stop the tunnel when the troubleshooting session is complete.
+
+## Analysis notes
+
+Performance Lab records one canonical telemetry sample per actual HWiNFO source update. This avoids duplicating samples when the browser refresh interval is faster than HWiNFO's polling interval.
+
+FPS percentiles are calculated from HWiNFO polling samples. They are useful for trend analysis, but they are not true per-frame 1% or 0.1% lows. Raw PresentMon frame events are required for exact frame-level analysis.
+
+CPU PPT, TDC, and EDC readings represent limit utilization, not percentages of time spent throttling. Actual throttling is reported only when HWiNFO exposes a corresponding status signal.
+
+For a useful gaming capture:
+
+- select the intended target FPS before capture;
+- record 60–120 seconds of representative gameplay;
+- keep menus and loading screens outside the measured lap;
+- use a 500–1000 ms HWiNFO polling interval for trend analysis.
+
+## Export formats
+
+The **Session** menu provides two analysis-oriented exports:
+
+- **AI analysis JSON** — scope metadata, source mappings, summaries, diagnostics, warnings, and canonical telemetry samples.
+- **Analysis telemetry CSV** — one row per HWiNFO update with wide columns for FPS, frame time, CPU, GPU, memory, power, temperature, and limit signals.
+
+Missing or ambiguous readings are exported as `null` instead of being silently replaced with unrelated sensors.
+
+## Version history
+
+See [CHANGELOG.md](CHANGELOG.md) for release highlights. Every published version is available as an annotated Git tag.
+
+## Files
+
+- `hwinfo-performance-lab.ps1` — shared-memory reader, local HTTP server, API, and dashboard
+- `START-PERFORMANCE-LAB.bat` — Windows launcher

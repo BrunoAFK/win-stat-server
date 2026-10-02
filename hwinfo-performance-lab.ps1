@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v7.0</title>
+<title>HWiNFO Performance Lab v7.1</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -1194,7 +1194,7 @@ select{
 <body>
 <div class="wrap">
 <header>
- <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)))">v7.0</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
+ <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)))">v7.1</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
  <div class="livebox"><span class="badge" id="status">CONNECTING</span><span class="age" id="age">—</span></div>
 </header>
 
@@ -1839,7 +1839,11 @@ function rebuildSourceSelectors(){
 function updateSourceState(){
  const fps=selectedSource('fps'),ft=selectedSource('ft');S.fpsKey=fps?keyOf(fps):null;S.ftKey=ft?keyOf(ft):null;
  const st=$('fpsSourceState');
- if(fps&&ft){st.className='source-state ok';st.textContent=`FPS: ${fps.Label} • Frame time: ${ft.Label}`}
+ if(fps&&ft){
+   st.className='source-state ok';
+   const gl=overviewReading('gpulatency'),dl=overviewReading('displaylatency'),vr=overviewReading('vram');
+   st.textContent=`FPS: ${fps.Label} • Frame time: ${ft.Label} • GPU latency: ${gl?gl.Label:'not exposed'} • Display latency: ${dl?dl.Label:'not exposed'} • VRAM: ${vr?vr.Label:'not exposed'}`;
+ }
  else if(fps){st.className='source-state warn';st.textContent=`FPS found (${fps.Label}), but no frame-time source detected`}
  else{st.className='source-state warn';st.textContent='No FPS source detected yet — start the game and check HWiNFO PresentMon / FPS readings'}
 }
@@ -1851,57 +1855,164 @@ function overviewReading(kind){
  const rs=S.latest?.Readings||[];
  const unit=r=>String(r.Unit||'').trim().toLowerCase();
  const txt=r=>readingText(r);
- const score=(r,tests)=>{let s=0;for(const [re,pts] of tests)if(re.test(txt(r)))s+=pts;return s};
- const pick=(tests,unitTests=[])=>{
+ const label=r=>norm(`${r.Label||''} ${r.LabelOriginal||''}`);
+ const sensor=r=>norm(`${r.Sensor||''} ${r.SensorOriginal||''}`);
+
+ const score=(r,tests)=>{
+   let s=0;
+   for(const [re,pts] of tests)if(re.test(txt(r)))s+=pts;
+   return s;
+ };
+
+ // IMPORTANT:
+ // A unit match can NEVER create a candidate. The reading first needs a positive
+ // semantic match from its sensor/label text. This prevents e.g. any MB reading
+ // becoming VRAM or any ms reading becoming PresentMon latency.
+ const pick=(tests,unitTests=[],excludeTests=[])=>{
    let best=null,bestScore=-Infinity;
    for(const r of rs){
-     let s=score(r,tests);
+     if(excludeTests.some(re=>re.test(txt(r))))continue;
+     let semantic=score(r,tests);
+     if(semantic<=0)continue;
+
+     let s=semantic;
      if(unitTests.length){
        const u=unit(r);
-       if(unitTests.some(x=>x.test(u)))s+=35;else s-=25;
+       if(unitTests.some(x=>x.test(u)))s+=35;
+       else s-=35;
      }
-     if(s>bestScore&&s>0){best=r;bestScore=s}
+     if(s>bestScore){best=r;bestScore=s}
    }
    return best;
  };
+
+ // For status metrics we require explicit "limited/throttling" semantics rather
+ // than generic "... Limit %" headroom/utilization readings.
+ const pickStatus=(tests)=>{
+   let best=null,bestScore=-Infinity;
+   for(const r of rs){
+     let s=score(r,tests);
+     if(s<=0)continue;
+     const l=label(r);
+     if(/\blimit\b/.test(l)&&!/\blimited\b|throttl|prochot|performance limit/.test(l))continue;
+     if(s>bestScore){best=r;bestScore=s}
+   }
+   return best;
+ };
+
  switch(kind){
-  case 'gpu': return pick([[/\bgpu core load\b/,100],[/\bgpu utilization\b/,90],[/\bgpu load\b/,75]],[/^%$/,/percent/]);
-  case 'gt': return pick([[/\bgpu temperature\b/,100],[/\bgpu.*core.*temperature\b/,95],[/\bgpu temp\b/,80],[/hot ?spot|junction/,-100]],[/°c/,/^c$/]);
-  case 'ghot': return pick([[/gpu.*hot ?spot/,120],[/hot ?spot.*temperature/,110],[/gpu.*junction.*temperature/,105],[/junction temperature/,90]],[/°c/,/^c$/]);
-  case 'gp': return pick([[/\bgpu asic power\b/,130],[/\bgpu total board power\b/,125],[/\btotal board power\b/,120],[/\bgpu board power\b/,115],[/\bgpu chip power\b/,110],[/\bgpu power\b/,105],[/\bgraphics power\b/,95],[/\bgpu ppt\b/,80]],[/^w$/,/watt/]);
-  case 'gc': return pick([[/\bgpu core clock\b/,120],[/\bgpu clock\b/,110],[/\bgraphics clock\b/,100],[/memory/,-100]],[/mhz/,/ghz/]);
-  case 'gmc': return pick([[/\bgpu memory clock\b/,125],[/\bmemory clock\b/,80],[/\bvram.*clock\b/,100]],[/mhz/,/ghz/]);
-  case 'gfan': return pick([[/\bgpu fan\b/,120],[/\bfan.*gpu\b/,110],[/\bgpu.*fan speed\b/,125]],[/rpm/,/^%$/,/percent/]);
-  case 'cpumax': return pick([[/\bmax cpu thread usage\b/,140],[/\bmaximum cpu thread usage\b/,135],[/\bmax cpu core usage\b/,125],[/\bmaximum cpu core usage\b/,120]],[/^%$/,/percent/]);
-  case 'cpu': return pick([[/\btotal cpu usage\b/,130],[/\bcpu total\b/,110],[/\bcpu usage\b/,70]],[/^%$/,/percent/]);
-  case 'ct': return pick([[/\bcpu tctl tdie\b/,135],[/\bcpu package temperature\b/,130],[/\bcpu package\b/,80],[/\bcpu temperature\b/,105]],[/°c/,/^c$/]);
-  case 'cp': return pick([[/\bcpu package power\b/,140],[/\bpackage power\b/,120],[/\bcpu power\b/,90]],[/^w$/,/watt/]);
-  case 'cc': return pick([[/\bcore effective clocks.*avg\b/,140],[/\baverage effective clock\b/,135],[/\bcore effective clock\b/,100]],[/mhz/,/ghz/]);
-  case 'thermallimit': return pick([[/^thermal limit$/,170],[/\bthermal limit\b/,120]],[/^%$/,/percent/]);
-  case 'pptlimit': return pick([[/^cpu ppt limit$/,180],[/\bcpu ppt limit\b/,160],[/\bppt limit\b/,120]],[/^%$/,/percent/]);
-  case 'tdclimit': return pick([[/^cpu tdc limit$/,180],[/\bcpu tdc limit\b/,160],[/\btdc limit\b/,120]],[/^%$/,/percent/]);
-  case 'edclimit': return pick([[/^cpu edc limit$/,180],[/\bcpu edc limit\b/,160],[/\bedc limit\b/,120]],[/^%$/,/percent/]);
-  case 'htc': return pick([[/thermal throttling htc/,200]]);
-  case 'prochotcpu': return pick([[/thermal throttling prochot cpu/,200]]);
-  case 'prochotext': return pick([[/thermal throttling prochot ext/,200]]);
-  case 'ramload': return pick([[/\bphysical memory load\b/,130],[/\bram load\b/,110],[/\bmemory load\b/,75]],[/^%$/,/percent/]);
-  case 'ramused': return pick([[/\bphysical memory used\b/,130],[/\bram used\b/,110],[/\bmemory used\b/,70]],[/mb/,/gb/]);
-  case 'ramavail': return pick([[/\bavailable physical memory\b/,140],[/\bphysical memory available\b/,135],[/\bavailable memory\b/,90]],[/mb/,/gb/]);
-  case 'committed': return pick([[/\bcommitted memory\b/,130],[/\bcommit charge\b/,100]],[/mb/,/gb/,/^%$/,/percent/]);
-  case 'vram': return pick([[/\bgpu memory allocated\b/,140],[/\bdedicated memory usage\b/,130],[/\bgpu memory used\b/,125],[/\bvram used\b/,120]],[/mb/,/gb/]);
-  case 'vramload': return pick([[/\bgpu memory load\b/,140],[/\bvram.*load\b/,130],[/\bdedicated memory.*usage\b/,80]],[/^%$/,/percent/]);
-  case 'pagefile': return pick([[/\bpage file usage\b/,140],[/\bpagefile usage\b/,135],[/\bpage file\b/,80]],[/^%$/,/percent/,/mb/,/gb/]);
-  case 'memerrors': return pick([[/\bmemory errors\b/,130],[/\becc.*error\b/,120],[/\bwhea.*memory\b/,110]]);
-  case 'cpubusy': return pick([[/\bcpu busy\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'cpuwait': return pick([[/\bcpu wait\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gbusy': return pick([[/\bgpu busy\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gpuwait': return pick([[/\bgpu wait\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'gpulatency': return pick([[/\bgpu latency\b/,130]],[/^ms$/,/milliseconds/]);
-  case 'displaylatency': return pick([[/\bdisplay latency\b/,140],[/\brender present latency\b/,130],[/\brender latency\b/,120],[/\bpresent latency\b/,110]],[/^ms$/,/milliseconds/]);
-  case 'gpupowerlimited': return pick([[/\bgpu power limited\b/,180],[/\bgpu.*power limit(ed)?\b/,150]]);
-  case 'gputemplimited': return pick([[/\bgpu temperature limited\b/,180],[/\bgpu.*thermal limit(ed)?\b/,150]]);
-  case 'gpucurrentlimited': return pick([[/\bgpu current limited\b/,180]]);
-  case 'gpuvoltagelimited': return pick([[/\bgpu voltage limited\b/,180]]);
+  case 'gpu':
+   return pick([[/\bgpu core load\b/,120],[/\bgpu utilization\b/,110],[/\bgpu load\b/,90]],[/^%$/,/percent/],[/memory|video engine|media/]);
+  case 'gt':
+   return pick([[/\bgpu temperature\b/,120],[/\bgpu.*core.*temperature\b/,115],[/\bgpu temp\b/,100],[/hot ?spot|junction/,-120]],[/°c/,/^c$/]);
+  case 'ghot':
+   return pick([[/gpu.*hot ?spot/,140],[/hot ?spot.*temperature/,130],[/gpu.*junction.*temperature/,125],[/junction temperature/,105]],[/°c/,/^c$/]);
+  case 'gp':
+   return pick([
+     [/\bgpu asic power\b/,150],[/\bgpu total board power\b/,145],[/\btotal board power\b/,140],
+     [/\bgpu board power\b/,135],[/\bgpu chip power\b/,130],[/\bgpu power\b/,125],
+     [/\bgraphics power\b/,110],[/\bgpu ppt\b/,95]
+   ],[/^w$/,/watt/],[/memory power/]);
+  case 'gc':
+   return pick([[/\bgpu core clock\b/,140],[/\bgpu clock\b/,130],[/\bgraphics clock\b/,120]],[/mhz/,/ghz/],[/memory/]);
+  case 'gmc':
+   return pick([[/\bgpu memory clock\b/,145],[/\bvram.*clock\b/,135],[/\bmemory clock\b/,90]],[/mhz/,/ghz/],[/system|physical memory/]);
+  case 'gfan':
+   return pick([[/\bgpu fan speed\b/,145],[/\bgpu fan\b/,135],[/\bfan.*gpu\b/,125]],[/rpm/,/^%$/,/percent/]);
+
+  case 'cpumax':
+   return pick([[/\bmax cpu thread usage\b/,150],[/\bmaximum cpu thread usage\b/,145],[/\bmax cpu core usage\b/,135],[/\bmaximum cpu core usage\b/,130]],[/^%$/,/percent/]);
+  case 'cpu':
+   return pick([[/\btotal cpu usage\b/,150],[/\bcpu total\b/,125],[/\bcpu usage\b/,85]],[/^%$/,/percent/],[/core \d|thread \d/]);
+  case 'ct':
+   return pick([[/\bcpu tctl tdie\b/,155],[/\bcpu package temperature\b/,150],[/\bcpu temperature\b/,125]],[/°c/,/^c$/],[/ccd|core \d/]);
+  case 'cp':
+   return pick([[/\bcpu package power\b/,155],[/\bpackage power\b/,135],[/\bcpu power\b/,110]],[/^w$/,/watt/]);
+  case 'cc':
+   return pick([[/\bcore effective clocks.*avg\b/,155],[/\baverage effective clock\b/,150],[/\bcore effective clock\b/,115]],[/mhz/,/ghz/]);
+
+  case 'thermallimit':
+   return pick([[/^thermal limit$/,190],[/\bcpu.*thermal limit\b/,155]],[/^%$/,/percent/],[/throttl|limited/]);
+  case 'pptlimit':
+   return pick([[/^cpu ppt limit$/,200],[/\bcpu ppt limit\b/,180],[/\bppt limit\b/,140]],[/^%$/,/percent/],[/limited/]);
+  case 'tdclimit':
+   return pick([[/^cpu tdc limit$/,200],[/\bcpu tdc limit\b/,180],[/\btdc limit\b/,140]],[/^%$/,/percent/],[/limited/]);
+  case 'edclimit':
+   return pick([[/^cpu edc limit$/,200],[/\bcpu edc limit\b/,180],[/\bedc limit\b/,140]],[/^%$/,/percent/],[/limited/]);
+
+  case 'htc':
+   return pickStatus([[/thermal throttling htc/,220]]);
+  case 'prochotcpu':
+   return pickStatus([[/thermal throttling prochot cpu/,220]]);
+  case 'prochotext':
+   return pickStatus([[/thermal throttling prochot ext/,220]]);
+
+  case 'ramload':
+   return pick([[/\bphysical memory load\b/,160],[/\bram load\b/,140]],[/^%$/,/percent/],[/gpu|vram|virtual memory/]);
+  case 'ramused':
+   return pick([[/\bphysical memory used\b/,160],[/\bram used\b/,140]],[/mb/,/gb/],[/gpu|vram|virtual memory/]);
+  case 'ramavail':
+   return pick([[/\bavailable physical memory\b/,170],[/\bphysical memory available\b/,165],[/\bram available\b/,140]],[/mb/,/gb/],[/gpu|vram|virtual memory/]);
+  case 'committed':
+   return pick([[/\bcommitted memory\b/,150],[/\bcommit charge\b/,130],[/\bvirtual memory committed\b/,120]],[/mb/,/gb/,/^%$/,/percent/],[/gpu|vram/]);
+
+  // VRAM must explicitly say GPU/Dedicated/Video/VRAM memory.
+  // Generic "Memory Used", "Virtual Memory" and System readings are intentionally excluded.
+  case 'vram':
+   return pick([
+     [/\bgpu memory allocated\b/,180],[/\bgpu memory used\b/,175],[/\bgpu memory usage\b/,170],
+     [/\bdedicated gpu memory\b/,165],[/\bdedicated memory usage\b/,155],
+     [/\bvideo memory used\b/,155],[/\bvram used\b/,175],[/\bvram usage\b/,165]
+   ],[/mb/,/gb/],[/virtual memory|physical memory|system memory|page file|committed/]);
+
+  case 'vramload':
+   return pick([
+     [/\bgpu memory load\b/,180],[/\bgpu memory utilization\b/,175],
+     [/\bvram load\b/,180],[/\bvram utilization\b/,175],
+     [/\bdedicated memory utilization\b/,160]
+   ],[/^%$/,/percent/],[/virtual memory|physical memory|system memory|page file/]);
+
+  case 'pagefile':
+   return pick([[/\bpage file usage\b/,160],[/\bpagefile usage\b/,155],[/\bpage file\b/,105]],[/^%$/,/percent/,/mb/,/gb/]);
+  case 'memerrors':
+   return pick([[/\bmemory errors\b/,150],[/\becc.*error\b/,140],[/\bwhea.*memory\b/,130]]);
+
+  case 'cpubusy':
+   return pick([[/\bcpu busy\b/,170]],[/^ms$/,/milliseconds/],[/gpu/]);
+  case 'cpuwait':
+   return pick([[/\bcpu wait\b/,170]],[/^ms$/,/milliseconds/],[/gpu/]);
+  case 'gbusy':
+   return pick([[/\bgpu busy\b/,170]],[/^ms$/,/milliseconds/],[/cpu/]);
+  case 'gpuwait':
+   return pick([[/\bgpu wait\b/,170]],[/^ms$/,/milliseconds/],[/cpu/]);
+
+  // Latency mappings are intentionally strict. If HWiNFO does not expose the
+  // exact PresentMon metric, return null instead of falling back to Frame Time.
+  case 'gpulatency':
+   return pick([[/\bgpu latency\b/,200],[/\bpresentmon.*gpu latency\b/,220]],[/^ms$/,/milliseconds/],[/frame time|frametime|display latency/]);
+  case 'displaylatency':
+   return pick([[/\bdisplay latency\b/,220],[/\bpresentmon.*display latency\b/,240]],[/^ms$/,/milliseconds/],[/frame time|frametime|gpu latency|render present latency/]);
+
+  // Actual "Limited" status signals.
+  case 'gpupowerlimited':
+   return pickStatus([[/\bgpu power limited\b/,230],[/\bperformance limit.*power\b/,210],[/\bpower throttling\b/,190]]);
+  case 'gputemplimited':
+   return pickStatus([[/\bgpu temperature limited\b/,230],[/\bperformance limit.*thermal\b/,210],[/\bgpu thermal throttling\b/,210]]);
+  case 'gpucurrentlimited':
+   return pickStatus([[/\bgpu current limited\b/,230],[/\bperformance limit.*current\b/,210]]);
+  case 'gpuvoltagelimited':
+   return pickStatus([[/\bgpu voltage limited\b/,230],[/\bperformance limit.*voltage\b/,210]]);
+
+  // Headroom/utilization-style percentage readings are kept separate from status.
+  case 'gputhermallimitpct':
+   return pick([
+     [/\bgpu edge thermal limit\b/,220],[/\bgpu hot ?spot thermal limit\b/,215],
+     [/\bgpu junction thermal limit\b/,210],[/\bgpu thermal limit\b/,170]
+   ],[/^%$/,/percent/],[/limited|throttl/]);
+  case 'gpupowerlimitpct':
+   return pick([
+     [/\bgpu power limit\b/,190],[/\bgpu ppt limit\b/,180],[/\bgpu power percent\b/,160]
+   ],[/^%$/,/percent/],[/limited|throttl/]);
  }
  return null;
 }
@@ -1919,12 +2030,16 @@ function actualCpuThrottleStatus(){
 }
 
 function actualGpuThrottleStatus(){
- const rs=S.latest?.Readings||[];
- const thermal=rs.filter(r=>/\bgpu\b|graphics/.test(readingText(r))&&/thermal thrott|performance limit thermal|thermal limit active/.test(readingText(r)));
- const active=thermal.find(r=>n(r.Value)!==null&&n(r.Value)>0);
+ const explicit=[
+   overviewReading('gputemplimited')
+ ].filter(Boolean);
+
+ if(!explicit.length)
+   return {display:'—',level:null,reason:'No explicit GPU thermal-throttling / Temperature Limited status is exposed',reading:null};
+
+ const active=explicit.find(r=>n(r.Value)!==null&&n(r.Value)>0);
  if(active)return {display:'ACTIVE',level:'bad',reason:`${active.Label} is active`,reading:active};
- if(thermal.length)return {display:'OK',level:null,reason:'GPU thermal-protection/throttling signal is inactive',reading:thermal[0]};
- return {display:'—',level:null,reason:'No explicit GPU thermal-throttling status sensor found',reading:null};
+ return {display:'OK',level:null,reason:'Explicit GPU thermal-throttling status is inactive',reading:explicit[0]};
 }
 
 const OVERVIEW_DEFS={
@@ -2285,6 +2400,8 @@ const ANALYSIS_METRICS=[
  {key:'gpu_temp_limited',label:'GPU Temperature Limited',unit:null,group:'gpu_limit',kind:'gputemplimited'},
  {key:'gpu_current_limited',label:'GPU Current Limited',unit:null,group:'gpu_limit',kind:'gpucurrentlimited'},
  {key:'gpu_voltage_limited',label:'GPU Voltage Limited',unit:null,group:'gpu_limit',kind:'gpuvoltagelimited'},
+ {key:'gpu_thermal_limit_pct',label:'GPU Thermal Limit Utilization',unit:'%',group:'gpu_limit',kind:'gputhermallimitpct'},
+ {key:'gpu_power_limit_pct',label:'GPU Power Limit Utilization',unit:'%',group:'gpu_limit',kind:'gpupowerlimitpct'},
 
  {key:'cpu_total_pct',label:'CPU Total Usage',unit:'%',group:'cpu',kind:'cpu'},
  {key:'cpu_max_thread_pct',label:'CPU Max Thread Usage',unit:'%',group:'cpu',kind:'cpumax'},
@@ -2312,6 +2429,43 @@ const ANALYSIS_METRICS=[
 function analysisMetricReading(def){
  return def.get?def.get():overviewReading(def.kind);
 }
+
+function metricMappingStatus(def,r){
+ if(!r)return {status:'missing',confidence:'none',reason:'No semantically matching HWiNFO reading found'};
+ const t=readingText(r),l=norm(`${r.Label||''} ${r.LabelOriginal||''}`),u=norm(r.Unit);
+
+ // Defensive post-validation for the metrics that caused real-world false mappings.
+ if(def.key==='vram_used'||def.key==='vram_load_pct'){
+   if(/virtual memory|physical memory|system memory|page file|committed/.test(t))
+     return {status:'rejected',confidence:'none',reason:'Rejected system/virtual-memory source for a VRAM metric'};
+   if(!/gpu memory|dedicated.*memory|video memory|vram/.test(t))
+     return {status:'rejected',confidence:'none',reason:'VRAM metric requires explicit GPU/dedicated/video-memory semantics'};
+ }
+ if(def.key==='gpu_latency_ms'){
+   if(!/\bgpu latency\b/.test(t))
+     return {status:'rejected',confidence:'none',reason:'GPU Latency requires an explicit GPU Latency reading; Frame Time is not accepted'};
+ }
+ if(def.key==='display_latency_ms'){
+   if(!/\bdisplay latency\b/.test(t))
+     return {status:'rejected',confidence:'none',reason:'Display Latency requires an explicit Display Latency reading; Frame Time is not accepted'};
+ }
+ if(def.key==='gpu_temp_limited'){
+   if(!/temperature limited|performance limit.*thermal|thermal throttling/.test(t))
+     return {status:'rejected',confidence:'none',reason:'Generic Thermal Limit % is utilization/headroom, not a Temperature Limited status'};
+ }
+ if(def.key==='gpu_power_limited'){
+   if(!/power limited|performance limit.*power|power throttling/.test(t))
+     return {status:'rejected',confidence:'none',reason:'Generic Power Limit % is utilization/headroom, not a Power Limited status'};
+ }
+
+ return {status:'mapped',confidence:'high',reason:null};
+}
+
+function verifiedAnalysisReading(def){
+ const r=analysisMetricReading(def);
+ const m=metricMappingStatus(def,r);
+ return m.status==='mapped'?r:null;
+}
 function activeLapIdAt(t){
  let id=1;
  for(const lap of S.laps){if(t>=lap.start)id=lap.id;else break}
@@ -2321,7 +2475,7 @@ function sampleAnalysisTelemetry(now=Date.now()){
  if(!S.latest?.Ok)return;
  const values={};
  for(const def of ANALYSIS_METRICS){
-   const r=analysisMetricReading(def);
+   const r=verifiedAnalysisReading(def);
    const v=r?n(r.Value):null;
    values[def.key]=v;
  }
@@ -2393,10 +2547,14 @@ function analysisSummary(rows=analysisRowsForScope()){
      clock_mhz:statPack(get('gpu_clock_mhz')),
      vram_load_pct:statPack(get('vram_load_pct')),
      limits:{
-       power_active_samples:get('gpu_power_limited').filter(v=>v>0).length,
-       temperature_active_samples:get('gpu_temp_limited').filter(v=>v>0).length,
-       current_active_samples:get('gpu_current_limited').filter(v=>v>0).length,
-       voltage_active_samples:get('gpu_voltage_limited').filter(v=>v>0).length
+       status_active_samples:{
+         power_limited:get('gpu_power_limited').filter(v=>v>0).length,
+         temperature_limited:get('gpu_temp_limited').filter(v=>v>0).length,
+         current_limited:get('gpu_current_limited').filter(v=>v>0).length,
+         voltage_limited:get('gpu_voltage_limited').filter(v=>v>0).length
+       },
+       thermal_limit_utilization_pct:statPack(get('gpu_thermal_limit_pct')),
+       power_limit_utilization_pct:statPack(get('gpu_power_limit_pct'))
      }
    },
    cpu:{
@@ -2417,11 +2575,101 @@ function analysisSummary(rows=analysisRowsForScope()){
    },
    memory:{
      ram_load_pct:statPack(get('ram_load_pct')),
+     ram_used:statPack(get('ram_used')),
+     ram_available:statPack(get('ram_available')),
+     committed:statPack(get('memory_committed')),
+     vram_used:statPack(get('vram_used')),
      vram_load_pct:statPack(get('vram_load_pct')),
      pagefile:statPack(get('pagefile')),
      memory_errors:statPack(get('memory_errors'))
    }
  };
+}
+
+function analysisMappingDiagnostics(){
+ const out={};
+ const sourceUse=new Map();
+
+ for(const def of ANALYSIS_METRICS){
+   const raw=analysisMetricReading(def);
+   const check=metricMappingStatus(def,raw);
+   const verified=check.status==='mapped'?raw:null;
+   const srcKey=verified?keyOf(verified):null;
+
+   out[def.key]={
+     status:check.status,
+     confidence:check.confidence,
+     reason:check.reason,
+     source_key:srcKey,
+     source_sensor:verified?.Sensor||null,
+     source_label:verified?.Label||null,
+     source_unit:verified?.Unit||null
+   };
+
+   if(srcKey){
+     if(!sourceUse.has(srcKey))sourceUse.set(srcKey,[]);
+     sourceUse.get(srcKey).push(def.key);
+   }
+ }
+
+ // Flag suspicious reuse of one reading for unrelated canonical metrics.
+ for(const [srcKey,keys] of sourceUse){
+   if(keys.length<2)continue;
+   const allowedPairs=[
+     ['gpu_util_pct','vram_load_pct']
+   ];
+   const allowed=allowedPairs.some(pair=>keys.every(k=>pair.includes(k)));
+   if(!allowed){
+     for(const k of keys){
+       out[k].duplicate_source_with=keys.filter(x=>x!==k);
+     }
+   }
+ }
+ return out;
+}
+
+function captureWarnings(rows=analysisRowsForScope(),summary=analysisSummary(rows),mapping=analysisMappingDiagnostics()){
+ const warnings=[];
+ const q=summary.quality;
+
+ if(q.samples<30)warnings.push({
+   code:'LOW_SAMPLE_COUNT',severity:'warning',
+   message:`Only ${q.samples} HWiNFO source samples are available. Use at least ~30 samples for a basic trend analysis and preferably 60–120 seconds of gameplay.`
+ });
+ if(q.duration_ms<30000)warnings.push({
+   code:'SHORT_CAPTURE',severity:'warning',
+   message:`Capture duration is ${formatDuration(q.duration_ms)}. A 60–120 second representative gameplay lap is recommended.`
+ });
+ if(Number.isFinite(q.median_sample_interval_ms)&&q.median_sample_interval_ms>=900)warnings.push({
+   code:'COARSE_POLLING',severity:'info',
+   message:`Median HWiNFO sample interval is ${Math.round(q.median_sample_interval_ms)} ms. This is suitable for trends, not true per-frame 1%/0.1% lows or stutter analysis.`
+ });
+
+ const target=Number(S.targetFps);
+ warnings.push({
+   code:'ANALYSIS_TARGET',severity:'info',
+   message:target>0
+     ?`All target-relative calculations use the user-selected target of ${target} FPS (${(1000/target).toFixed(3)} ms frame budget).`
+     :'Target FPS is Off, so target-relative frame-budget classifications are disabled.'
+ });
+
+ const important=['fps','frame_time_ms','cpu_busy_ms','gpu_busy_ms','gpu_util_pct','cpu_max_thread_pct','gpu_power_w','cpu_package_power_w'];
+ for(const key of important){
+   if(mapping[key]?.status!=='mapped')warnings.push({
+     code:'MISSING_IMPORTANT_METRIC',severity:'warning',metric:key,
+     message:`${key} is not safely mapped and is exported as null.`
+   });
+ }
+
+ for(const key of ['vram_used','vram_load_pct','gpu_latency_ms','display_latency_ms','gpu_temp_limited','gpu_power_limited']){
+   const m=mapping[key];
+   if(m?.status==='rejected')warnings.push({
+     code:'REJECTED_SUSPICIOUS_MAPPING',severity:'info',metric:key,
+     message:`${key}: ${m.reason}`
+   });
+ }
+
+ return warnings;
 }
 
 function updateScopeAnalysis(){
@@ -2447,10 +2695,12 @@ function updateScopeAnalysis(){
    ?limits.map(v=>Number.isFinite(v)?`${v.toFixed(0)}%`:'—').join(' / ')
    :'—';
 
- const q=s.quality;
+ const q=s.quality,mapping=analysisMappingDiagnostics(),warnings=captureWarnings(rows,s,mapping);
+ const target=Number(S.targetFps);
  $('analysisQuality').textContent=q.samples
-   ?`${q.samples} samples · ${formatDuration(q.duration_ms)} · median interval ${Number.isFinite(q.median_sample_interval_ms)?Math.round(q.median_sample_interval_ms)+' ms':'—'}`
+   ?`${q.samples} samples · ${formatDuration(q.duration_ms)} · ${Number.isFinite(q.median_sample_interval_ms)?Math.round(q.median_sample_interval_ms)+' ms poll':'—'} · target ${target>0?target+' FPS':'off'}${warnings.filter(w=>w.severity==='warning').length?` · ${warnings.filter(w=>w.severity==='warning').length} warning(s)`:''}`
    :'Collecting telemetry…';
+ $('analysisQuality').title=warnings.map(w=>`[${w.severity}] ${w.message}`).join('\n');
 }
 
 function detectHardware(){
@@ -2461,16 +2711,21 @@ function detectHardware(){
 }
 
 function analysisMetricDefinitions(){
- const out={};
+ const diagnostics=analysisMappingDiagnostics(),out={};
  for(const def of ANALYSIS_METRICS){
-   const r=analysisMetricReading(def);
+   const d=diagnostics[def.key];
    out[def.key]={
      label:def.label,
      canonical_unit:def.unit,
      group:def.group,
-     source_sensor:r?.Sensor||null,
-     source_label:r?.Label||null,
-     source_unit:r?.Unit||null
+     mapping_status:d.status,
+     mapping_confidence:d.confidence,
+     mapping_reason:d.reason,
+     source_key:d.source_key,
+     source_sensor:d.source_sensor,
+     source_label:d.source_label,
+     source_unit:d.source_unit,
+     duplicate_source_with:d.duplicate_source_with||[]
    };
  }
  return out;
@@ -2478,10 +2733,11 @@ function analysisMetricDefinitions(){
 
 function exportAnalysisJson(){
  const rows=analysisRowsForScope(),summary=analysisSummary(rows),rg=scopeRange(),hardware=detectHardware();
+ const mapping=analysisMappingDiagnostics(),warnings=captureWarnings(rows,summary,mapping);
  const data={
    schema:'hwinfo-performance-lab-analysis',
-   schema_version:1,
-   app_version:'7.0',
+   schema_version:2,
+   app_version:'7.1',
    exported_at:new Date().toISOString(),
    scope:{
      label:rg.label,
@@ -2500,6 +2756,8 @@ function exportAnalysisJson(){
    },
    hardware,
    metric_definitions:analysisMetricDefinitions(),
+   capture_warnings:warnings,
+   mapping_diagnostics:mapping,
    summary,
    laps:S.laps.map((lap,i)=>({
      id:lap.id,
@@ -2511,8 +2769,11 @@ function exportAnalysisJson(){
      'FPS and frame-time percentiles are based on HWiNFO polling samples, not raw per-frame PresentMon events.',
      'CPU Busy is time the CPU spent generating the sampled frame; GPU Busy is time the GPU spent working on the sampled frame.',
      'PPT/TDC/EDC/Thermal Limit percentages are limit utilization, not percentages of time throttling.',
-     'HTC/PROCHOT and explicit GPU *Limited readings are exported separately as actual limit/throttle indicators when available.',
-     'Missing values mean the matching HWiNFO reading was not exposed or could not be mapped.'
+     'GPU Thermal Limit % / GPU Power Limit % are exported as utilization/headroom metrics, never as boolean throttling status.',
+     'HTC/PROCHOT and explicit GPU Temperature/Power/Current/Voltage Limited readings are separate actual status indicators when exposed.',
+     'GPU Latency and Display Latency are exported only when explicitly matching latency readings exist; Frame Time is never substituted.',
+     'VRAM metrics require explicit GPU/Dedicated/Video/VRAM memory semantics; System Virtual Memory is never substituted.',
+     'Missing or rejected values are null. Check mapping_diagnostics and capture_warnings before drawing conclusions.'
    ],
    samples:rows.map(row=>({
      timestamp:new Date(row.t).toISOString(),
@@ -2529,7 +2790,7 @@ function exportAnalysisJson(){
 function exportAnalysisCsv(){
  const rows=analysisRowsForScope(),rg=scopeRange();
  const defs=ANALYSIS_METRICS,keys=defs.map(d=>d.key);
- const header=['timestamp_iso','elapsed_ms','lap_id','target_fps','hwinfo_poll_ms',...keys];
+ const header=['timestamp_iso','elapsed_ms','lap_id','target_fps','frame_budget_ms','hwinfo_poll_ms',...keys];
  const lines=[header.join(',')];
  for(const row of rows){
    const values=[
@@ -2537,6 +2798,7 @@ function exportAnalysisCsv(){
      row.t-S.sessionStart,
      row.lapId,
      Number(S.targetFps)>0?Number(S.targetFps):'',
+     Number(S.targetFps)>0?1000/Number(S.targetFps):'',
      S.latest?.PollingPeriodMs??'',
      ...keys.map(k=>Number.isFinite(n(row.values?.[k]))?n(row.values[k]):'')
    ];
