@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.2</title>
+<title>HWiNFO Performance Lab v6.3</title>
 <style>
 :root{
   color-scheme:dark;
@@ -604,6 +604,49 @@ html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
 .switch input:checked + .switch-track .switch-thumb{
   transform:translateX(16px);
   background:var(--accent);
+}
+
+
+/* v6.3 readability pass: larger dropdown typography */
+select{
+  font-size:12px !important;
+  min-height:36px !important;
+  padding:7px 28px 7px 10px !important;
+  line-height:1.25 !important;
+}
+.pin-foot select{
+  font-size:11px !important;
+  min-height:34px !important;
+  padding:6px 26px 6px 9px !important;
+}
+.sourcebar select{
+  font-size:11px !important;
+  min-height:35px !important;
+  padding:6px 28px 6px 9px !important;
+}
+.menu-field select{
+  font-size:11px !important;
+  min-height:35px !important;
+  padding:6px 27px 6px 9px !important;
+  min-width:135px !important;
+  max-width:170px !important;
+}
+.menu-trigger{
+  font-size:12px !important;
+}
+.menu-action strong,
+.preset-card strong,
+.menu-field strong{
+  font-size:11px !important;
+}
+.menu-action small,
+.preset-card span,
+.menu-field small,
+.menu-head span{
+  font-size:9px !important;
+}
+.menu-head strong{
+  font-size:12px !important;
 }
 
 </style>
