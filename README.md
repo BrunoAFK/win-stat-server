@@ -1,35 +1,84 @@
-HWiNFO ALL-SENSORS WEB BRIDGE v2.1
-===================================
+HWiNFO PERFORMANCE LAB v3
+=========================
 
-FIX IN v2.1
------------
-The web listener is now dual-stack so both forms of Windows localhost work:
-- 127.0.0.1 (IPv4)
-- ::1       (IPv6)
+Purpose
+-------
+A lightweight remote debugging dashboard built on HWiNFO Shared Memory.
 
-This matters because Tunnelmole forwards to localhost:<port>, and Windows/Node
-may resolve localhost to IPv6.
-
-For safety, even though the socket is dual-stack, the bridge rejects requests
-whose source address is not loopback. It is therefore not intended to be
-directly exposed to your LAN. Tunnelmole remains the public-facing layer.
-
-QUICK TEST
+Highlights
 ----------
-1. Start HWiNFO Sensors and enable Shared Memory Support.
-2. Run START-HWINFO-ALL.bat
-3. In PowerShell test all three:
+- Reads ALL HWiNFO readings automatically.
+- Pin any sensor to the top.
+- Pins persist in your browser via localStorage.
+- Each pin has its own live graph.
+- Graph windows: 60 sec / 5 min / 15 min / 30 min.
+- Each pin can display:
+    * Current
+    * Session minimum
+    * Session maximum
+    * Session average
+    * All values
+- Session stats are calculated by this dashboard from scratch.
+- "Reset session" clears:
+    * local graph history
+    * session min/max/average
+    * sampled FPS percentiles
+  It intentionally does NOT reset HWiNFO's own built-in Min/Max/Avg.
+- FPS analysis:
+    * session average
+    * sampled P1 FPS
+    * sampled P0.1 FPS
+    * session min/max
+    * sampled frame-time P99
+    * sampled frame-time max
+- CSV export for pinned sensor history.
+- Search through every HWiNFO reading.
+- "Pin essentials" automatically pins common gaming-debug metrics.
 
-   Invoke-WebRequest http://127.0.0.1:8080/ -UseBasicParsing
-   Invoke-WebRequest http://localhost:8080/ -UseBasicParsing
-   Invoke-WebRequest http://[::1]:8080/ -UseBasicParsing
+IMPORTANT ABOUT 1% LOW / 0.1% LOW
+----------------------------------
+The dashboard receives HWiNFO sensor samples at HWiNFO's sensor polling rate.
+Therefore "Sampled P1" and "Sampled P0.1" are percentiles of those samples.
 
-All should return StatusCode 200.
+They are useful for long-session trend/debugging, but they are NOT a true
+per-frame 1% low / 0.1% low calculation from raw PresentMon frame events.
 
-4. Run:
-   tmole.exe 8080
+A future version can integrate PresentMon directly if exact frame-level
+percentiles are required.
 
-5. Open the generated HTTPS URL.
+SETUP
+-----
+1. Start HWiNFO in Sensors-only mode.
+2. Enable HWiNFO -> Settings -> Shared Memory Support.
+3. Run START-PERFORMANCE-LAB.bat
+4. Open:
+       http://localhost:8080
+5. When local access works, run:
+       tmole.exe 8080
+6. Open the generated HTTPS Tunnelmole URL remotely.
 
-If the first local URLs work but the Tunnelmole URL does not, copy the exact
-tmole.exe console output and HTTP error shown in the browser.
+NETWORKING
+----------
+The bridge accepts localhost IPv4 and IPv6 (127.0.0.1 / ::1), which fixes
+Windows localhost resolution issues with Tunnelmole.
+
+The bridge rejects direct non-loopback clients. Tunnelmole is the public layer.
+
+TIPS
+----
+- Start with "Pin essentials", then remove readings you do not care about.
+- For gaming diagnosis, useful pins normally include:
+    FPS
+    Frame time
+    GPU Core Load
+    GPU Temperature
+    GPU Power
+    GPU Clock
+    GPU Memory usage
+    Total CPU Usage
+    CPU Package/Tctl temperature
+    CPU Package Power
+    CPU Effective Clock
+    Physical Memory Load
+- For more time resolution, lower HWiNFO's sensor polling interval carefully.
+  A lower interval gives more samples, but also adds a little more monitoring work.
