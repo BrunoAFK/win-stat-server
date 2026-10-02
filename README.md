@@ -1,46 +1,85 @@
-HWiNFO PERFORMANCE LAB v6.1
+HWiNFO PERFORMANCE LAB v6.2
 ===========================
 
-PATCHES
--------
-1. Fixed the empty "Nothing pinned..." tile staying in the Pinned Telemetry grid
-   after the first real cards are added.
+V6.2
+----
+1. HEALTH COLORS
+   Settings -> Health colors
 
-2. Expanded Gaming / PresentMon essentials:
-   - FPS
-   - Frame Time
-   - CPU Busy
-   - CPU Wait
-   - GPU Busy
-   - GPU Wait
-   - GPU Latency
-   - Display Latency
+   Normal values remain visually neutral.
+   Only values outside the dashboard's generic troubleshooting thresholds are
+   highlighted:
+     yellow = warning
+     red    = critical
 
-   Metrics only appear when HWiNFO/PresentMon exposes them for the current game.
+   Health colors apply to:
+     - pinned headline values
+     - pinned Current / Session Min / Avg / Max values
+     - Gaming / GPU / CPU / Memory overview numbers
+     - full HWiNFO table
+     - FPS/session percentile metrics where appropriate
 
-3. The Gaming essential preset now attempts to pin the whole frame pipeline above.
+   Deliberately NOT treated as "bad" just because they are high:
+     - ordinary GPU utilization
+     - ordinary CPU utilization
+     - power consumption
+     - clocks
+     - CPU Wait / GPU Wait
 
-PRESENTMON INTERPRETATION
--------------------------
-CPU Busy:
-  Time the CPU spent generating the frame.
+   Those values are workload/context dependent.
 
-CPU Wait:
-  Time the CPU waited before it could begin generating the next frame.
+2. TARGET FPS
+   Settings -> Target FPS
 
-GPU Busy:
-  Time the GPU was actively executing work for the frame.
+   The selected target defines the frame budget used for:
+     - FPS health
+     - Frame Time health
+     - CPU Busy / GPU Busy health
+     - latency heuristics
 
-GPU Wait:
-  Time the GPU was idle while the frame was progressing through GPU work.
+   Example:
+     144 FPS target = ~6.94 ms frame budget.
 
-GPU Latency:
-  Time from frame start until GPU work begins.
+3. GENERIC TEMPERATURE / MEMORY HEURISTICS
+   CPU:
+     warning >= 85 C
+     critical >= 95 C
 
-Display Latency:
-  Time from frame start until the frame reaches the display, when available.
+   GPU core:
+     warning >= 82 C
+     critical >= 90 C
 
-These are durations in milliseconds, not percentages.
+   GPU hotspot / junction:
+     warning >= 95 C
+     critical >= 105 C
+
+   NVMe / SSD:
+     warning >= 70 C
+     critical >= 80 C
+
+   RAM load:
+     warning >= 85%
+     critical >= 95%
+
+   VRAM pressure:
+     warning >= 90%
+     critical >= 98%
+
+   These are generic debugging thresholds, not manufacturer-specific safety
+   limits. Exact component limits always take precedence.
+
+4. DROPDOWN / REFRESH FIX
+   Pinned cards are no longer synchronized/reinserted into the DOM on every
+   telemetry refresh.
+
+   Values and graphs update in place only.
+
+   This fixes native select/dropdown menus blinking or closing every time HWiNFO
+   refreshes. Card DOM is changed only when:
+     - a pin is added/removed
+     - cards are reordered
+     - sensor topology changes
+     - a dashboard setup is imported
 
 SETUP
 -----
@@ -48,4 +87,5 @@ SETUP
 2. Enable Shared Memory Support.
 3. Run START-PERFORMANCE-LAB.bat.
 4. Open http://localhost:8080
-5. Then expose with tmole.exe 8080 if needed.
+5. If needed, expose with:
+     tmole.exe 8080

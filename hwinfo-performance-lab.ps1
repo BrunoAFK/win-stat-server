@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.1</title>
+<title>HWiNFO Performance Lab v6.2</title>
 <style>
 :root{
   color-scheme:dark;
@@ -558,6 +558,54 @@ html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
   .menu-trigger{font-size:10px;padding:7px 8px}
 }
 
+
+/* v6.2 health-state styling */
+.health-warn{
+  color:var(--warn)!important;
+  font-weight:780!important;
+}
+.health-bad{
+  color:var(--bad)!important;
+  font-weight:820!important;
+}
+.switch{
+  display:inline-flex;
+  align-items:center;
+  flex:0 0 auto;
+  cursor:pointer;
+}
+.switch input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+.switch-track{
+  width:38px;
+  height:22px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--panel3);
+  display:block;
+  padding:2px;
+  transition:background .15s ease,border-color .15s ease;
+}
+.switch-thumb{
+  display:block;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:var(--muted);
+  transition:transform .15s ease,background .15s ease;
+}
+.switch input:checked + .switch-track{
+  background:color-mix(in srgb,var(--accent) 25%,var(--panel3));
+  border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+}
+.switch input:checked + .switch-track .switch-thumb{
+  transform:translateX(16px);
+  background:var(--accent);
+}
+
 </style>
 </head>
 <body>
@@ -692,6 +740,28 @@ html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
        <option value="light">Light</option>
       </select>
      </label>
+
+     <label class="menu-field">
+      <span><strong>Health colors</strong><small>Only abnormal values are colored. Normal values stay neutral.</small></span>
+      <label class="switch">
+       <input id="healthColors" type="checkbox" checked>
+       <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+     </label>
+
+     <label class="menu-field">
+      <span><strong>Target FPS</strong><small>Used for FPS, frame-time and frame-budget health thresholds.</small></span>
+      <select id="targetFps">
+       <option value="30">30 FPS</option>
+       <option value="60" selected>60 FPS</option>
+       <option value="90">90 FPS</option>
+       <option value="120">120 FPS</option>
+       <option value="144">144 FPS</option>
+       <option value="165">165 FPS</option>
+       <option value="240">240 FPS</option>
+       <option value="360">360 FPS</option>
+      </select>
+     </label>
     </div>
 
     <div class="menu-section menu-section-last">
@@ -718,7 +788,7 @@ html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
 </div>
 
 <div class="category-overview">
- <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span>PresentMon frame pipeline</span></div><div class="cat-metrics">
+ <section class="cat-panel"><div class="cat-head"><strong>Gaming</strong><span id="gamingTargetLabel">PresentMon frame pipeline</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">FPS</div><div class="v" id="ovFps">—</div></div>
   <div class="cat-metric"><div class="k">Frame time</div><div class="v" id="ovFt">—</div></div>
   <div class="cat-metric"><div class="k">CPU busy</div><div class="v" id="ovCpuBusy">—</div></div>
@@ -795,12 +865,149 @@ const fmt=(v,u,compact=false)=>{v=n(v);if(v===null)return '—';let d=compact?(M
 const qtile=(a,q)=>{const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!x.length)return null;if(x.length===1)return x[0];const p=(x.length-1)*q,l=Math.floor(p),h=Math.ceil(p);return x[l]+(x[h]-x[l])*(p-l)};
 const calc=a=>{const v=a.map(x=>x.v).filter(Number.isFinite);return v.length?{cur:v.at(-1),min:Math.min(...v),max:Math.max(...v),avg:v.reduce((x,y)=>x+y,0)/v.length,count:v.length}:{cur:null,min:null,max:null,avg:null,count:0}};
 
+function targetFrameMs(){return 1000/Math.max(1,Number(S.targetFps)||60)}
+
+function healthRule(r,value){
+ if(!S.healthColors)return null;
+ value=n(value);if(value===null||!r)return null;
+
+ const t=readingText(r),unit=String(r.Unit||'').trim().toLowerCase();
+ const target=Math.max(1,Number(S.targetFps)||60),budget=1000/target;
+
+ // Frame delivery: relative to the user's chosen target FPS.
+ if(unit==='fps'||/\bframerate\b/.test(t)){
+   if(value<=0)return {level:'bad',reason:`No rendered FPS; target is ${target} FPS`};
+   if(value<target*.75)return {level:'bad',reason:`Below 75% of ${target} FPS target`};
+   if(value<target*.90)return {level:'warn',reason:`Below 90% of ${target} FPS target`};
+   return null;
+ }
+ if((unit==='ms'||unit==='milliseconds')&&/\bframe time\b|\bframetime\b/.test(t)){
+   if(value>budget*1.50)return {level:'bad',reason:`Frame time exceeds 150% of ${budget.toFixed(2)} ms target frame budget`};
+   if(value>budget*1.15)return {level:'warn',reason:`Frame time exceeds 115% of ${budget.toFixed(2)} ms target frame budget`};
+   return null;
+ }
+
+ // PresentMon CPU/GPU busy: high busy time relative to the target frame budget
+ // means that stage alone is consuming nearly/all of the available frame budget.
+ if((unit==='ms'||unit==='milliseconds')&&/\bcpu busy\b|\bgpu busy\b/.test(t)){
+   if(value>budget*1.15)return {level:'bad',reason:`Busy time exceeds 115% of ${budget.toFixed(2)} ms frame budget`};
+   if(value>budget*.90)return {level:'warn',reason:`Busy time is using over 90% of ${budget.toFixed(2)} ms frame budget`};
+   return null;
+ }
+
+ // Wait times are diagnostically meaningful, but "high = unhealthy" is not
+ // universally true (it can simply identify the opposite side of a bottleneck).
+ if(/\bcpu wait\b|\bgpu wait\b/.test(t))return null;
+
+ // Latency heuristics scale with the target frame budget.
+ if((unit==='ms'||unit==='milliseconds')&&/\bgpu latency\b|\brender latency\b|\bpresent latency\b/.test(t)){
+   if(value>budget*3)return {level:'bad',reason:`Latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
+   if(value>budget*2)return {level:'warn',reason:`Latency exceeds 2× the ${budget.toFixed(2)} ms frame budget`};
+   return null;
+ }
+ if((unit==='ms'||unit==='milliseconds')&&/\bdisplay latency\b|\bclick to photon\b/.test(t)){
+   if(value>budget*5)return {level:'bad',reason:`Display latency exceeds 5× the ${budget.toFixed(2)} ms frame budget`};
+   if(value>budget*3)return {level:'warn',reason:`Display latency exceeds 3× the ${budget.toFixed(2)} ms frame budget`};
+   return null;
+ }
+
+ // Temperature rules. These are deliberately generic troubleshooting thresholds,
+ // not replacements for component-specific manufacturer limits.
+ const isTemp=unit.includes('°c')||unit==='c'||/\btemperature\b|\btemp\b|\btctl\b|\btdie\b|\bhot spot\b|\bjunction\b/.test(t);
+ if(isTemp){
+   // "Distance to TjMAX"/thermal margin works in the opposite direction.
+   if(/distance to tjmax|thermal margin/.test(t)){
+     if(value<5)return {level:'bad',reason:'Less than 5 °C thermal headroom'};
+     if(value<15)return {level:'warn',reason:'Less than 15 °C thermal headroom'};
+     return null;
+   }
+   if(/gpu.*hot spot|hot spot|junction/.test(t)){
+     if(value>=105)return {level:'bad',reason:'GPU hotspot/junction at or above 105 °C'};
+     if(value>=95)return {level:'warn',reason:'GPU hotspot/junction at or above 95 °C'};
+     return null;
+   }
+   if(/gpu/.test(t)){
+     if(value>=90)return {level:'bad',reason:'GPU core temperature at or above 90 °C'};
+     if(value>=82)return {level:'warn',reason:'GPU core temperature at or above 82 °C'};
+     return null;
+   }
+   if(/nvme|ssd|drive/.test(t)){
+     if(value>=80)return {level:'bad',reason:'Storage temperature at or above 80 °C'};
+     if(value>=70)return {level:'warn',reason:'Storage temperature at or above 70 °C'};
+     return null;
+   }
+   if(/cpu|package|tctl|tdie|ccd/.test(t)){
+     if(value>=95)return {level:'bad',reason:'CPU temperature at or above 95 °C'};
+     if(value>=85)return {level:'warn',reason:'CPU temperature at or above 85 °C'};
+     return null;
+   }
+   if(value>=95)return {level:'bad',reason:'Temperature at or above 95 °C'};
+   if(value>=85)return {level:'warn',reason:'Temperature at or above 85 °C'};
+   return null;
+ }
+
+ // Memory pressure. CPU/GPU load itself is intentionally NOT marked unhealthy:
+ // 99% GPU utilization while gaming is normally desirable.
+ if(unit==='%'||unit==='percent'){
+   if(/physical memory load|\bram load\b|committed memory load/.test(t)){
+     if(value>=95)return {level:'bad',reason:'System memory pressure at or above 95%'};
+     if(value>=85)return {level:'warn',reason:'System memory pressure at or above 85%'};
+     return null;
+   }
+   if(/gpu memory load|\bvram\b.*load|dedicated memory.*usage/.test(t)){
+     if(value>=98)return {level:'bad',reason:'VRAM pressure at or above 98%'};
+     if(value>=90)return {level:'warn',reason:'VRAM pressure at or above 90%'};
+     return null;
+   }
+   if(/remaining life|drive health|ssd health/.test(t)){
+     if(value<=10)return {level:'bad',reason:'Remaining drive life at or below 10%'};
+     if(value<=20)return {level:'warn',reason:'Remaining drive life at or below 20%'};
+     return null;
+   }
+ }
+
+ // Throttling, thermal/power limit and hardware-error indicators.
+ // Numeric boolean sensors exposed as 1/0 are common in HWiNFO.
+ if(/thermal thrott|critical temperature|power limit exceeded|performance limit thermal|prochot/.test(t)){
+   if(value>0)return {level:'bad',reason:'A throttling / thermal limit indicator is active'};
+ }
+ if(/whea.*error|hardware error/.test(t)){
+   if(value>0)return {level:'bad',reason:'Hardware error count is non-zero'};
+ }
+
+ // Clock, raw power and ordinary CPU/GPU utilization remain neutral because
+ // whether they are "good" depends on the workload and the exact component.
+ return null;
+}
+
+function clearHealth(el){
+ if(!el)return;
+ el.classList.remove('health-warn','health-bad');
+ if(el.dataset.healthTitle==='1'){el.removeAttribute('title');delete el.dataset.healthTitle}
+}
+function applyHealth(el,r,value){
+ if(!el)return;
+ clearHealth(el);
+ const h=healthRule(r,value);
+ if(!h)return;
+ el.classList.add(h.level==='bad'?'health-bad':'health-warn');
+ el.title=h.reason;
+ el.dataset.healthTitle='1';
+}
+function applySyntheticHealth(el,type,value,r=null){
+ if(!el)return;
+ const pseudo=r||(type==='fps'?{Sensor:'PresentMon',Label:'Framerate',Unit:'FPS'}:{Sensor:'PresentMon',Label:'Frame Time',Unit:'ms'});
+ applyHealth(el,pseudo,value);
+}
+
 const S={
  latest:null,paused:false,inFlight:false,pollTimer:null,lastFetchAt:0,lastSourceToken:null,
  histories:new Map(),sessionStart:Date.now(),samples:0,collapsed:new Set(),category:'all',
  topology:'',fpsKey:null,ftKey:null,draggingKey:null,hoverCharts:new Map(),hoverRatio:new Map(),
  fpsPref:localStorage.getItem('hpl-v5-fps-source')||'',ftPref:localStorage.getItem('hpl-v5-ft-source')||'',
  themePref:localStorage.getItem('hpl-v5-theme')||'system',
+ healthColors:localStorage.getItem('hpl-v62-health-colors')!=='0',
+ targetFps:Number(localStorage.getItem('hpl-v62-target-fps')||60),
  pins:JSON.parse(localStorage.getItem('hpl-v5-pins')||localStorage.getItem('hpl-v4-pins')||'[]'),
  opts:JSON.parse(localStorage.getItem('hpl-v5-opts')||localStorage.getItem('hpl-v4-opts')||'{}'),
  pendingImport:null
@@ -813,6 +1020,8 @@ function save(){
  localStorage.setItem('hpl-v5-fps-source',S.fpsPref||'');
  localStorage.setItem('hpl-v5-ft-source',S.ftPref||'');
  localStorage.setItem('hpl-v5-theme',S.themePref||'system');
+ localStorage.setItem('hpl-v62-health-colors',S.healthColors?'1':'0');
+ localStorage.setItem('hpl-v62-target-fps',String(S.targetFps||60));
 }
 function descriptor(r){return r?{sensor:r.Sensor||'',sensorOriginal:r.SensorOriginal||'',label:r.Label||'',labelOriginal:r.LabelOriginal||'',unit:r.Unit||''}:null}
 function resolveDescriptor(d){
@@ -982,10 +1191,17 @@ function syncPinsStructure(){
  host.className='pingrid';
  host.querySelectorAll(':scope > .empty').forEach(x=>x.remove());
  const existing=new Map([...host.querySelectorAll('.pin-card')].map(c=>[c.dataset.key,c]));
+ let cursor=host.firstElementChild;
  for(const k of valid){
   const r=reading(k);let c=existing.get(k);
-  if(!c){const t=document.createElement('template');t.innerHTML=cardHtml(k,r).trim();c=t.content.firstElementChild;bindCardDnD(c);bindChartHover(c.querySelector('canvas'),k)}
-  host.appendChild(c);applyCardPresentation(c,k);existing.delete(k);
+  if(!c){
+   const t=document.createElement('template');t.innerHTML=cardHtml(k,r).trim();c=t.content.firstElementChild;
+   bindCardDnD(c);bindChartHover(c.querySelector('canvas'),k);
+  }
+  // Move a card only when the requested order actually changed.
+  if(c!==cursor)host.insertBefore(c,cursor);
+  cursor=c.nextElementSibling;
+  applyCardPresentation(c,k);existing.delete(k);
  }
  existing.forEach(c=>c.remove());
 }
@@ -1028,12 +1244,21 @@ function bindChartHover(canvas,k){
 function drawOneCard(card,k){
  const r=reading(k);if(!card||!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);
  const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;
- card.querySelector('[data-pin-primary]').textContent=fmt(primary,r.Unit);
- for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]])card.querySelector(`[data-pin-stat="${f}"]`).textContent=fmt(v,r.Unit);
+ const primaryEl=card.querySelector('[data-pin-primary]');
+ primaryEl.textContent=fmt(primary,r.Unit);applyHealth(primaryEl,r,primary);
+ for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]]){
+   const el=card.querySelector(`[data-pin-stat="${f}"]`);
+   el.textContent=fmt(v,r.Unit);applyHealth(el,r,v);
+ }
  card.querySelector('[data-chartlegend]').textContent=`${st.count} source samples${o.smooth?' • 5s rolling average':''}`;
  if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null);
 }
-function updatePins(){syncPinsStructure();document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key))}
+function updatePins(){
+ // IMPORTANT: never rebuild, append or move card DOM nodes during a telemetry poll.
+ // Native <select> popups are closed by browsers when their element is moved/reinserted.
+ // Card structure is synchronized only when pins/topology/order actually changes.
+ document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key))
+}
 
 function updateOverview(){
  const fps=selectedSource('fps'),ft=selectedSource('ft');
@@ -1046,18 +1271,40 @@ function updateOverview(){
   ovCpu:overviewReading('cpu'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),ovCc:overviewReading('cc'),
   ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload')
  };
- for(const [id,r] of Object.entries(vals))$(id).textContent=r?fmt(r.Value,r.Unit):'—';
+ for(const [id,r] of Object.entries(vals)){
+   const el=$(id);
+   el.textContent=r?fmt(r.Value,r.Unit):'—';
+   if(r)applyHealth(el,r,r.Value);else clearHealth(el);
+ }
+ $('gamingTargetLabel').textContent=`PresentMon frame pipeline • target ${S.targetFps} FPS`;
 }
 function updateFps(){
- const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);
- const set=(id,x)=>$(id).textContent=x;
+ const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),
+       tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);
+ const fpsR=reading(S.fpsKey),ftR=reading(S.ftKey);
+ const set=(id,display,value,type,r)=>{
+   const el=$(id);el.textContent=display;
+   if(value===null||value===undefined||!Number.isFinite(Number(value)))clearHealth(el);
+   else applySyntheticHealth(el,type,Number(value),r);
+ };
  if(fv.length){
-  set('fpsAvg',fmt(fv.reduce((a,b)=>a+b,0)/fv.length,'FPS'));set('fpsP5',fv.length>=20?fmt(qtile(fv,.05),'FPS'):'collecting…');
-  set('fpsP1',fv.length>=50?fmt(qtile(fv,.01),'FPS'):'collecting…');set('fpsP01',fv.length>=500?fmt(qtile(fv,.001),'FPS'):'collecting…');
-  set('fpsRange',`${fmt(Math.min(...fv),'')} / ${fmt(Math.max(...fv),' FPS')}`);
- }else['fpsAvg','fpsP5','fpsP1','fpsP01','fpsRange'].forEach(id=>set(id,'—'));
- if(tv.length){set('ftP95',tv.length>=20?fmt(qtile(tv,.95),'ms'):'collecting…');set('ftP99',tv.length>=50?fmt(qtile(tv,.99),'ms'):'collecting…');set('ftMax',fmt(Math.max(...tv),'ms'))}
- else['ftP95','ftP99','ftMax'].forEach(id=>set(id,'—'));
+  const avg=fv.reduce((a,b)=>a+b,0)/fv.length,p5=fv.length>=20?qtile(fv,.05):null,p1=fv.length>=50?qtile(fv,.01):null,p01=fv.length>=500?qtile(fv,.001):null;
+  set('fpsAvg',fmt(avg,'FPS'),avg,'fps',fpsR);
+  if(p5!==null)set('fpsP5',fmt(p5,'FPS'),p5,'fps',fpsR);else{$('fpsP5').textContent='collecting…';clearHealth($('fpsP5'))}
+  if(p1!==null)set('fpsP1',fmt(p1,'FPS'),p1,'fps',fpsR);else{$('fpsP1').textContent='collecting…';clearHealth($('fpsP1'))}
+  if(p01!==null)set('fpsP01',fmt(p01,'FPS'),p01,'fps',fpsR);else{$('fpsP01').textContent='collecting…';clearHealth($('fpsP01'))}
+  const mn=Math.min(...fv),mx=Math.max(...fv);
+  // Range is kept neutral because min and max share one text node; coloring the whole
+  // value would incorrectly color a healthy maximum because of an unhealthy minimum.
+  $('fpsRange').textContent=`${fmt(mn,'')} / ${fmt(mx,' FPS')}`;clearHealth($('fpsRange'));
+ }else ['fpsAvg','fpsP5','fpsP1','fpsP01','fpsRange'].forEach(id=>{$(id).textContent='—';clearHealth($(id))});
+
+ if(tv.length){
+  const p95=tv.length>=20?qtile(tv,.95):null,p99=tv.length>=50?qtile(tv,.99):null,mx=Math.max(...tv);
+  if(p95!==null)set('ftP95',fmt(p95,'ms'),p95,'ft',ftR);else{$('ftP95').textContent='collecting…';clearHealth($('ftP95'))}
+  if(p99!==null)set('ftP99',fmt(p99,'ms'),p99,'ft',ftR);else{$('ftP99').textContent='collecting…';clearHealth($('ftP99'))}
+  set('ftMax',fmt(mx,'ms'),mx,'ft',ftR);
+ }else ['ftP95','ftP99','ftMax'].forEach(id=>{$(id).textContent='—';clearHealth($(id))});
 }
 
 function groupTopology(){
@@ -1090,7 +1337,13 @@ function renderGroupsStructure(force=false){
 }
 function updateSensorCells(){
  if(!S.latest?.Ok)return;
- for(const r of S.latest.Readings){const k=keyOf(r);for(const [f,v] of [['cur',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){const el=document.querySelector(`[data-cell="${CSS.escape(k+':'+f)}"]`);if(el)el.textContent=fmt(v,r.Unit)}}
+ for(const r of S.latest.Readings){
+   const k=keyOf(r);
+   for(const [f,v] of [['cur',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){
+     const el=document.querySelector(`[data-cell="${CSS.escape(k+':'+f)}"]`);
+     if(el){el.textContent=fmt(v,r.Unit);applyHealth(el,r,v)}
+   }
+ }
 }
 function syncGroupStars(){document.querySelectorAll('[data-star]').forEach(b=>{const on=S.pins.includes(b.dataset.star);b.classList.toggle('on',on);b.textContent=on?'★':'☆';b.title=on?'Unpin':'Pin'})}
 
@@ -1156,7 +1409,7 @@ function exportSetup(){
  const pinItems=S.pins.map(k=>{const r=reading(k);if(!r)return null;return {reading:descriptor(r),options:ensureOpt(k)}}).filter(Boolean);
  const cfg={
   schema:'hwinfo-performance-lab-setup',version:5,exportedAt:new Date().toISOString(),
-  ui:{theme:S.themePref,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category},
+  ui:{theme:S.themePref,graphWindow:$('window').value,clientPoll:$('clientPoll').value,category:S.category,healthColors:S.healthColors,targetFps:S.targetFps},
   pins:pinItems,
   sources:{fps:S.fpsPref?descriptor(reading(S.fpsPref)):null,frameTime:S.ftPref?descriptor(reading(S.ftPref)):null}
  };
@@ -1172,6 +1425,8 @@ function applyImportedSetup(cfg){
  if(cfg.ui?.clientPoll)$('clientPoll').value=String(cfg.ui.clientPoll);
  if(cfg.ui?.category){S.category=cfg.ui.category;setFilterButtons()}
  if(cfg.ui?.theme)applyTheme(cfg.ui.theme);
+ if(typeof cfg.ui?.healthColors==='boolean'){S.healthColors=cfg.ui.healthColors;$('healthColors').checked=S.healthColors}
+ if(cfg.ui?.targetFps){S.targetFps=Number(cfg.ui.targetFps)||60;$('targetFps').value=String(S.targetFps)}
  const fr=resolveDescriptor(cfg.sources?.fps),tr=resolveDescriptor(cfg.sources?.frameTime);S.fpsPref=fr?keyOf(fr):'';S.ftPref=tr?keyOf(tr):'';
  save();rebuildSourceSelectors();S.topology='';renderGroupsStructure(true);syncPinsStructure();updateDynamic();schedulePoll();
  toast(`Setup imported${unresolved?` • ${unresolved} sensor(s) not found on this PC`:''}`)
@@ -1225,6 +1480,10 @@ $('search').addEventListener('input',()=>{S.topology='';renderGroupsStructure(tr
 $('window').addEventListener('change',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
 $('clientPoll').addEventListener('change',schedulePoll);
 $('theme').addEventListener('change',e=>applyTheme(e.target.value));
+$('healthColors').checked=S.healthColors;
+$('targetFps').value=String(S.targetFps);
+$('healthColors').addEventListener('change',e=>{S.healthColors=e.target.checked;save();updateDynamic()});
+$('targetFps').addEventListener('change',e=>{S.targetFps=Number(e.target.value)||60;save();updateDynamic()});
 $('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();updateDynamic()});
 $('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();updateDynamic()});
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
