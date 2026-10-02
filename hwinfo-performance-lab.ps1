@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.9.1</title>
+<title>HWiNFO Performance Lab v6.9.2</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -1025,12 +1025,105 @@ select{
   .pin-placeholder{animation:none}
 }
 
+
+/* v6.9.2 command bar alignment */
+.commandbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  width:100%;
+  flex-wrap:nowrap;
+}
+.search-shell{
+  flex:1 1 auto!important;
+  max-width:none!important;
+  min-width:280px!important;
+}
+.menu-wrap{
+  flex:0 0 auto;
+}
+.top-lap-controls{
+  margin-left:6px;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  padding:3px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:color-mix(in srgb,var(--panel2) 72%,var(--panel));
+  box-shadow:none;
+  overflow:visible;
+}
+.top-lap-controls select{
+  appearance:none;
+  -webkit-appearance:none;
+  min-width:86px!important;
+  max-width:132px!important;
+  min-height:32px!important;
+  height:32px!important;
+  padding:4px 24px 4px 11px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:
+    linear-gradient(45deg,transparent 50%,var(--muted) 50%) calc(100% - 14px) 13px/4px 4px no-repeat,
+    linear-gradient(135deg,var(--muted) 50%,transparent 50%) calc(100% - 10px) 13px/4px 4px no-repeat,
+    transparent!important;
+  color:var(--text);
+  box-shadow:none!important;
+  outline:none;
+  font-weight:700;
+}
+.top-lap-controls select:hover,
+.top-lap-controls select:focus{
+  background:
+    linear-gradient(45deg,transparent 50%,var(--text) 50%) calc(100% - 14px) 13px/4px 4px no-repeat,
+    linear-gradient(135deg,var(--text) 50%,transparent 50%) calc(100% - 10px) 13px/4px 4px no-repeat,
+    color-mix(in srgb,var(--accent) 7%,transparent)!important;
+}
+.top-lap-new{
+  min-height:32px!important;
+  height:32px!important;
+  padding:4px 11px!important;
+  border:0!important;
+  border-radius:999px!important;
+  background:color-mix(in srgb,var(--accent) 11%,transparent)!important;
+  color:var(--text);
+  font-weight:700;
+  white-space:nowrap;
+}
+.top-lap-new:hover{
+  background:color-mix(in srgb,var(--accent) 19%,transparent)!important;
+}
+@media(max-width:1180px){
+  .commandbar{flex-wrap:wrap}
+  .search-shell{
+    flex:1 1 100%!important;
+    min-width:100%!important;
+  }
+  .top-lap-controls{
+    margin-left:auto;
+  }
+}
+@media(max-width:650px){
+  .menu-wrap{flex:1 1 auto}
+  .top-lap-controls{
+    width:auto!important;
+    flex:0 0 auto!important;
+    margin-left:auto;
+  }
+  .top-lap-controls select{
+    width:auto!important;
+    flex:0 0 auto!important;
+  }
+}
+
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
- <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:11px">v5</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
+ <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)))">v6.9.2</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
  <div class="livebox"><span class="badge" id="status">CONNECTING</span><span class="age" id="age">—</span></div>
 </header>
 
@@ -1039,14 +1132,6 @@ select{
   <div class="search-shell">
    <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
    <input class="search" type="text" id="search" placeholder="Search sensors, readings, temperatures, clocks…">
-  </div>
-
-  <div class="top-lap-controls" aria-label="Lap navigation">
-   <select id="lapView" aria-label="Session scope">
-    <option value="current">Lap 1 · Current</option>
-    <option value="all">All session</option>
-   </select>
-   <button type="button" class="top-lap-new" id="newLapQuick" title="Start a new lap">+ Lap</button>
   </div>
 
   <div class="menu-wrap">
@@ -1231,6 +1316,13 @@ select{
      <input id="importFile" type="file" accept=".json,application/json" class="hidden">
     </div>
    </div>
+  </div>
+  <div class="top-lap-controls" aria-label="Lap navigation">
+   <select id="lapView" aria-label="Session scope">
+    <option value="current">Lap 1</option>
+    <option value="all">All session</option>
+   </select>
+   <button type="button" class="top-lap-new" id="newLapQuick" title="Start a new lap">+ Lap</button>
   </div>
  </div>
 </div>
@@ -1958,7 +2050,7 @@ function syncLapSelector(){
  const el=$('lapView');if(!el)return;
  const value=S.viewScope||'current';
  const previous=S.laps.slice(0,-1);
- el.innerHTML=`<option value="current">Lap ${currentLap().id} · Current</option><option value="all">All session</option>`+
+ el.innerHTML=`<option value="current">Lap ${currentLap().id}</option><option value="all">All session</option>`+
    previous.map(l=>`<option value="lap:${l.id}">Lap ${l.id}</option>`).join('');
  el.value=[...el.options].some(o=>o.value===value)?value:'current';
  if(el.value!==value)S.viewScope='current';
