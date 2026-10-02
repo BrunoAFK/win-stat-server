@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.4</title>
+<title>HWiNFO Performance Lab v6.5</title>
 <style>
 :root{
   color-scheme:dark;
@@ -852,15 +852,19 @@ select{
   <div class="cat-metric"><div class="k">Fan</div><div class="v" id="ovGfan">—</div></div>
   <div class="cat-metric"><div class="k">Throttle / limit</div><div class="v" id="ovGthrottle">—</div></div>
  </div></section>
- <section class="cat-panel"><div class="cat-head"><strong>CPU</strong><span>processor</span></div><div class="cat-metrics">
+ <section class="cat-panel"><div class="cat-head"><strong>CPU</strong><span>processor + Ryzen limits</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">Total usage</div><div class="v" id="ovCpu">—</div></div>
   <div class="cat-metric"><div class="k">Max thread</div><div class="v" id="ovCpuMax">—</div></div>
   <div class="cat-metric"><div class="k">Temperature</div><div class="v" id="ovCt">—</div></div>
   <div class="cat-metric"><div class="k">Package power</div><div class="v" id="ovCp">—</div></div>
   <div class="cat-metric"><div class="k">Effective clock</div><div class="v" id="ovCc">—</div></div>
-  <div class="cat-metric"><div class="k">PPT / limit</div><div class="v" id="ovCpuPpt">—</div></div>
-  <div class="cat-metric"><div class="k">Thermal throttle</div><div class="v" id="ovCpuThermal">—</div></div>
-  <div class="cat-metric"><div class="k">Power throttle</div><div class="v" id="ovCpuPowerLimit">—</div></div>
+  <div class="cat-metric" title="How close the CPU currently is to its configured thermal ceiling. This is NOT throttling time."><div class="k">Thermal limit</div><div class="v" id="ovThermalLimit">—</div></div>
+  <div class="cat-metric" title="Package Power Tracking limit utilization. 100% means the PPT budget has been reached."><div class="k">PPT limit</div><div class="v" id="ovPptLimit">—</div></div>
+  <div class="cat-metric" title="Thermal Design Current limit utilization."><div class="k">TDC limit</div><div class="v" id="ovTdcLimit">—</div></div>
+  <div class="cat-metric" title="Electrical Design Current limit utilization."><div class="k">EDC limit</div><div class="v" id="ovEdcLimit">—</div></div>
+  <div class="cat-metric" title="Hardware Thermal Control. ACTIVE means actual CPU thermal throttling was reported by this signal."><div class="k">Throttle HTC</div><div class="v" id="ovThrottleHtc">—</div></div>
+  <div class="cat-metric" title="CPU PROCHOT thermal throttling signal."><div class="k">PROCHOT CPU</div><div class="v" id="ovProchotCpu">—</div></div>
+  <div class="cat-metric" title="External PROCHOT signal. An external platform component can assert this signal."><div class="k">PROCHOT EXT</div><div class="v" id="ovProchotExt">—</div></div>
  </div></section>
  <section class="cat-panel"><div class="cat-head"><strong>Memory</strong><span>RAM / VRAM</span></div><div class="cat-metrics">
   <div class="cat-metric"><div class="k">RAM load</div><div class="v" id="ovRamLoad">—</div></div>
@@ -916,6 +920,19 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const norm=s=>String(s??'').toLowerCase().replace(/[\(\)\[\]\-_:/\\]+/g,' ').replace(/\s+/g,' ').trim();
 const keyOf=r=>`${r.SensorIndex}:${r.ReadingId}`;
 const readingText=r=>norm(`${r.Sensor||''} ${r.SensorOriginal||''} ${r.Label||''} ${r.LabelOriginal||''} ${r.Unit||''}`);
+
+function isThrottleStatus(r){
+ const t=readingText(r);
+ return /thermal throttling htc|thermal throttling prochot cpu|thermal throttling prochot ext|performance limit thermal|performance limit power/.test(t);
+}
+function statusDisplay(r,v){
+ v=n(v);if(v===null)return '—';
+ return v>0?'ACTIVE':'OK';
+}
+function displayReading(r,v){
+ if(r&&isThrottleStatus(r))return statusDisplay(r,v);
+ return fmt(v,r?.Unit||'');
+}
 const n=v=>(v===null||v===undefined||!Number.isFinite(Number(v)))?null:Number(v);
 const fmt=(v,u,compact=false)=>{v=n(v);if(v===null)return '—';let d=compact?(Math.abs(v)>=100?0:1):(Math.abs(v)>=1000?0:Math.abs(v)>=100?1:2);return `${v.toFixed(d)}${u?` ${u}`:''}`};
 const qtile=(a,q)=>{const x=a.filter(Number.isFinite).slice().sort((a,b)=>a-b);if(!x.length)return null;if(x.length===1)return x[0];const p=(x.length-1)*q,l=Math.floor(p),h=Math.ceil(p);return x[l]+(x[h]-x[l])*(p-l)};
@@ -1019,10 +1036,17 @@ function healthRule(r,value){
    }
  }
 
- // Throttling, thermal/power limit and hardware-error indicators.
- // Numeric boolean sensors exposed as 1/0 are common in HWiNFO.
- if(/thermal thrott|critical temperature|power limit exceeded|performance limit thermal|performance limit power|power thrott|prochot/.test(t)){
-   if(value>0)return {level:'bad',reason:'A throttling / performance-limit indicator is active'};
+ // Ryzen resource-limit utilization: this is NOT throttling by itself.
+ if((unit==='%'||unit==='percent')&&/^(thermal limit|cpu ppt limit|cpu tdc limit|cpu edc limit)$/.test(norm(r.Label||r.LabelOriginal||''))){
+   if(value>=100)return {level:'bad',reason:'This CPU limit has reached 100% or more'};
+   if(value>=90)return {level:'warn',reason:'This CPU limit is above 90%'};
+   return null;
+ }
+
+ // Actual binary throttling / performance-limit indicators.
+ if(/thermal throttling htc|thermal throttling prochot cpu|thermal throttling prochot ext|performance limit thermal|performance limit power/.test(t)){
+   if(value>0)return {level:'bad',reason:'A real throttling / performance-limit signal is active'};
+   return null;
  }
  if(/whea.*error|hardware error/.test(t)){
    if(value>0)return {level:'bad',reason:'Hardware error count is non-zero'};
@@ -1199,6 +1223,20 @@ function overviewReading(kind){
    return pick([[/\bcore effective clocks.*avg\b/,140],[/\baverage effective clock\b/,135],[/\bcore effective clock\b/,100]],[/mhz/,/ghz/]);
   case 'cpuppt':
    return pick([[/\bcpu ppt\b/,130],[/\bppt limit\b/,120],[/\bpackage power limit\b/,100],[/\bcpu power limit\b/,95]],[/^%$/,/percent/,/^w$/,/watt/]);
+  case 'thermallimit':
+   return pick([[/^thermal limit$/,170],[/\bthermal limit\b/,120]],[/^%$/,/percent/]);
+  case 'pptlimit':
+   return pick([[/^cpu ppt limit$/,180],[/\bcpu ppt limit\b/,160],[/\bppt limit\b/,120]],[/^%$/,/percent/]);
+  case 'tdclimit':
+   return pick([[/^cpu tdc limit$/,180],[/\bcpu tdc limit\b/,160],[/\btdc limit\b/,120]],[/^%$/,/percent/]);
+  case 'edclimit':
+   return pick([[/^cpu edc limit$/,180],[/\bcpu edc limit\b/,160],[/\bedc limit\b/,120]],[/^%$/,/percent/]);
+  case 'htc':
+   return pick([[/thermal throttling htc/,200]]);
+  case 'prochotcpu':
+   return pick([[/thermal throttling prochot cpu/,200]]);
+  case 'prochotext':
+   return pick([[/thermal throttling prochot ext/,200]]);
   case 'ramload':
    return pick([[/\bphysical memory load\b/,130],[/\bram load\b/,110],[/\bmemory load\b/,75]],[/^%$/,/percent/]);
   case 'ramused':
@@ -1394,10 +1432,10 @@ function drawOneCard(card,k){
  const r=reading(k);if(!card||!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);
  const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;
  const primaryEl=card.querySelector('[data-pin-primary]');
- primaryEl.textContent=fmt(primary,r.Unit);applyHealth(primaryEl,r,primary);
+ primaryEl.textContent=displayReading(r,primary);applyHealth(primaryEl,r,primary);
  for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]]){
    const el=card.querySelector(`[data-pin-stat="${f}"]`);
-   el.textContent=fmt(v,r.Unit);applyHealth(el,r,v);
+   el.textContent=displayReading(r,v);applyHealth(el,r,v);
  }
  card.querySelector('[data-chartlegend]').textContent=`${st.count} source samples${o.smooth?' • 5s rolling average':''}`;
  if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null);
@@ -1419,7 +1457,9 @@ function updateOverview(){
   ovGpu:overviewReading('gpu'),ovGt:overviewReading('gt'),ovGhot:overviewReading('ghot'),ovGp:overviewReading('gp'),
   ovGc:overviewReading('gc'),ovGmc:overviewReading('gmc'),ovGfan:overviewReading('gfan'),
   ovCpu:overviewReading('cpu'),ovCpuMax:overviewReading('cpumax'),ovCt:overviewReading('ct'),ovCp:overviewReading('cp'),
-  ovCc:overviewReading('cc'),ovCpuPpt:overviewReading('cpuppt'),
+  ovCc:overviewReading('cc'),
+  ovThermalLimit:overviewReading('thermallimit'),ovPptLimit:overviewReading('pptlimit'),
+  ovTdcLimit:overviewReading('tdclimit'),ovEdcLimit:overviewReading('edclimit'),
   ovRamLoad:overviewReading('ramload'),ovRamUsed:overviewReading('ramused'),ovRamAvail:overviewReading('ramavail'),
   ovCommitted:overviewReading('committed'),ovVram:overviewReading('vram'),ovVramLoad:overviewReading('vramload'),
   ovPageFile:overviewReading('pagefile'),ovMemErrors:overviewReading('memerrors')
@@ -1440,14 +1480,20 @@ function updateOverview(){
  }else if(gpuThermal||gpuPower){ge.textContent='OK';clearHealth(ge)}
  else{ge.textContent='—';clearHealth(ge)}
 
- const cpuThermal=limitStatus('cpu','thermal'),cpuPower=limitStatus('cpu','power');
- for(const [id,status] of [['ovCpuThermal',cpuThermal],['ovCpuPowerLimit',cpuPower]]){
+ const cpuStatuses={
+   ovThrottleHtc:overviewReading('htc'),
+   ovProchotCpu:overviewReading('prochotcpu'),
+   ovProchotExt:overviewReading('prochotext')
+ };
+ for(const [id,r] of Object.entries(cpuStatuses)){
    const el=$(id);clearHealth(el);
-   if(!status){el.textContent='—';continue}
-   el.textContent=status.display;
-   if(status.level){
-     el.classList.add(status.level==='bad'?'health-bad':'health-warn');
-     if(status.reason){el.title=status.reason;el.dataset.healthTitle='1'}
+   if(!r){el.textContent='—';continue}
+   const active=n(r.Value)!==null&&n(r.Value)>0;
+   el.textContent=active?'ACTIVE':'OK';
+   if(active){
+     el.classList.add('health-bad');
+     el.title=`${r.Label}: active`;
+     el.dataset.healthTitle='1';
    }
  }
 
@@ -1499,7 +1545,7 @@ function rowHtml(r){
  return `<tr class="sensor-row" draggable="true" data-key="${k}">
   <td><button class="star ${on?'on':''}" data-star="${k}" title="${on?'Unpin':'Pin'}">${on?'★':'☆'}</button></td>
   <td class="sensorlabel">${esc(r.Label)} <span class="catbadge">${classify(r)}</span></td>
-  <td data-cell="${k}:cur">${esc(fmt(r.Value,r.Unit))}</td><td data-cell="${k}:min">${esc(fmt(r.Min,r.Unit))}</td><td data-cell="${k}:max">${esc(fmt(r.Max,r.Unit))}</td><td data-cell="${k}:avg">${esc(fmt(r.Avg,r.Unit))}</td>
+  <td data-cell="${k}:cur">${esc(displayReading(r,r.Value))}</td><td data-cell="${k}:min">${esc(displayReading(r,r.Min))}</td><td data-cell="${k}:max">${esc(displayReading(r,r.Max))}</td><td data-cell="${k}:avg">${esc(displayReading(r,r.Avg))}</td>
  </tr>`;
 }
 function renderGroupsStructure(force=false){
@@ -1518,7 +1564,7 @@ function updateSensorCells(){
    const k=keyOf(r);
    for(const [f,v] of [['cur',r.Value],['min',r.Min],['max',r.Max],['avg',r.Avg]]){
      const el=document.querySelector(`[data-cell="${CSS.escape(k+':'+f)}"]`);
-     if(el){el.textContent=fmt(v,r.Unit);applyHealth(el,r,v)}
+     if(el){el.textContent=displayReading(r,v);applyHealth(el,r,v)}
    }
  }
 }
@@ -1564,9 +1610,13 @@ const PRESETS={
   r=>/cpu tctl tdie|cpu package temperature/.test(readingText(r)),
   r=>/cpu package power|package power/.test(readingText(r)),
   r=>/core effective clocks.*avg|average effective clock/.test(readingText(r)),
-  r=>/cpu ppt|ppt limit|cpu power limit/.test(readingText(r)),
-  r=>/thermal thrott|prochot/.test(readingText(r)),
-  r=>/power thrott|power limit/.test(readingText(r))
+  r=>/^thermal limit$/.test(norm(r.Label||r.LabelOriginal||'')),
+  r=>/^cpu ppt limit$/.test(norm(r.Label||r.LabelOriginal||'')),
+  r=>/^cpu tdc limit$/.test(norm(r.Label||r.LabelOriginal||'')),
+  r=>/^cpu edc limit$/.test(norm(r.Label||r.LabelOriginal||'')),
+  r=>/thermal throttling htc/.test(readingText(r)),
+  r=>/thermal throttling prochot cpu/.test(readingText(r)),
+  r=>/thermal throttling prochot ext/.test(readingText(r))
  ],
  memory:[
   r=>/physical memory load/.test(readingText(r)),

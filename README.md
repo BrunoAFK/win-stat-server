@@ -1,77 +1,63 @@
-HWiNFO PERFORMANCE LAB v6.4
+HWiNFO PERFORMANCE LAB v6.5
 ===========================
 
-OVERVIEW EXPANSION
-------------------
-Gaming:
-- FPS
-- Frame Time
-- CPU Busy
-- CPU Wait
-- GPU Busy
-- GPU Wait
-- GPU Latency
-- Display Latency
+IMPORTANT SEMANTICS FIX
+-----------------------
+Previous versions could incorrectly label Ryzen "Thermal Limit %" and
+"PPT Limit %" values as throttling.
 
-GPU:
-- Load
-- Temperature
-- Hotspot / junction temperature
-- Power
-- Core clock
-- Memory clock
-- Fan
-- Throttle / performance-limit status
+That was wrong.
 
-CPU:
-- Total usage
-- Max thread/core usage
-- Temperature
-- Package power
-- Effective clock
-- PPT / power-limit metric
-- Thermal throttling
-- Power throttling / power-limit status
+CPU overview now separates:
 
-Memory:
-- RAM load
-- RAM used
-- RAM available
-- Committed memory
-- VRAM used
-- VRAM load
-- Page file
-- Memory/ECC/WHEA-related error reading when HWiNFO exposes one
+Resource / headroom indicators:
+- Thermal Limit %
+- CPU PPT Limit %
+- CPU TDC Limit %
+- CPU EDC Limit %
 
-GPU POWER FIX
+Actual throttling/status indicators:
+- Thermal Throttling (HTC)
+- Thermal Throttling (PROCHOT CPU)
+- Thermal Throttling (PROCHOT EXT)
+
+The actual throttling indicators display:
+  OK
+or
+  ACTIVE
+
+instead of confusing 0.00% / 1.00% values.
+
+MEANING
+-------
+Thermal Limit %
+  How close the CPU is to its configured thermal limit.
+  It is not "percent of time throttling".
+
+PPT Limit %
+  Usage of the Package Power Tracking budget.
+
+TDC Limit %
+  Usage of the sustained/thermal-design current budget.
+
+EDC Limit %
+  Usage of the electrical/peak current budget.
+
+Reaching one of these resource limits can constrain boost behavior, but a value
+below 100% is not by itself an active throttling flag.
+
+HTC / PROCHOT CPU / PROCHOT EXT
+  These are actual thermal-throttling status signals.
+
+HEALTH COLORS
 -------------
-The dashboard no longer requires the reading to be literally named "GPU Power".
-It scores HWiNFO readings by label AND unit and supports names such as:
-- GPU ASIC Power
-- GPU Total Board Power
-- Total Board Power
-- GPU Board Power
-- GPU Chip Power
-- GPU Power
-- Graphics Power
-- GPU PPT
+For Thermal/PPT/TDC/EDC limit percentages:
+  < 90%   neutral
+  >= 90%  warning
+  >=100%  critical
 
-A W/Watt reading is strongly preferred.
+For actual throttling status:
+  OK      neutral
+  ACTIVE  critical/red
 
-TARGET FPS OFF
---------------
-Settings -> Target FPS -> Off
-
-When Off:
-- FPS is not colored against a target.
-- Frame Time is not colored against a frame budget.
-- CPU Busy / GPU Busy are not colored against a frame budget.
-- PresentMon latency metrics are not colored against a frame budget.
-
-Temperature, memory-pressure, throttling and hardware-error health colors still work.
-
-NOTE
-----
-Not every GPU/CPU exposes every HWiNFO sensor. A dash means the matching sensor
-is not available in the current HWiNFO reading set, not necessarily that the
-hardware does not support the feature.
+Target FPS can still be set to Off in Settings.
