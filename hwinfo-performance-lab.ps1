@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v5</title>
+<title>HWiNFO Performance Lab v6</title>
 <style>
 :root{
   color-scheme:dark;
@@ -357,6 +357,207 @@ table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;b
 .flash{animation:flash .38s ease}@keyframes flash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
 @media(max-width:1150px){.category-overview{grid-template-columns:repeat(2,minmax(230px,1fr))}}
 @media(max-width:800px){.wrap{padding:11px}.pingrid{grid-template-columns:1fr}.statgrid{grid-template-columns:repeat(2,1fr)}header{flex-direction:column}.livebox{justify-content:flex-start}.sep{display:none}.category-overview{grid-template-columns:1fr}.sourcebar select{min-width:180px;max-width:100%}th:nth-child(n+4),td:nth-child(n+4){display:none}}
+
+/* v6 compact command bar */
+.toolbar{
+  padding:8px 0 10px;
+  background:var(--toolbar);
+  border-bottom:1px solid var(--line-soft);
+  overflow:visible;
+}
+.commandbar{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:44px;
+  overflow:visible;
+}
+.search-shell{
+  position:relative;
+  flex:1;
+  min-width:300px;
+}
+.search-shell .search{
+  width:100%;
+  padding-left:37px;
+  min-height:40px;
+  background:color-mix(in srgb,var(--panel) 94%,transparent);
+  border-color:var(--line);
+}
+.search-shell .search:focus{
+  border-color:color-mix(in srgb,var(--accent) 55%,var(--line));
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent);
+}
+.search-icon{
+  position:absolute;
+  left:12px;
+  top:50%;
+  width:15px;
+  height:15px;
+  transform:translateY(-50%);
+  fill:none;
+  stroke:var(--muted);
+  stroke-width:1.8;
+  stroke-linecap:round;
+  pointer-events:none;
+}
+.menu-wrap{position:relative;flex:0 0 auto}
+.menu-trigger{
+  min-height:40px;
+  padding:8px 13px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-radius:10px;
+  background:transparent;
+  white-space:nowrap;
+  font-size:11px;
+  font-weight:650;
+  color:var(--soft);
+}
+.menu-trigger::after{
+  content:"";
+  width:6px;
+  height:6px;
+  border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;
+  transform:rotate(45deg) translateY(-2px);
+  opacity:.7;
+  transition:transform .15s ease;
+}
+.menu-wrap.open>.menu-trigger{
+  background:var(--panel2);
+  color:var(--text);
+  border-color:color-mix(in srgb,var(--accent) 28%,var(--line));
+}
+.menu-wrap.open>.menu-trigger::after{transform:rotate(225deg) translate(-1px,-1px)}
+.settings-trigger{padding-right:12px}
+.menu-panel{
+  display:none;
+  position:absolute;
+  top:calc(100% + 7px);
+  right:0;
+  width:340px;
+  max-width:min(92vw,380px);
+  background:color-mix(in srgb,var(--panel) 97%,transparent);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:0 18px 55px rgba(0,0,0,.28);
+  padding:8px;
+  z-index:150;
+  backdrop-filter:blur(18px);
+}
+html[data-theme="light"] .menu-panel{box-shadow:0 16px 45px rgba(30,50,80,.16)}
+.menu-panel-wide{width:420px}
+.menu-panel-settings{width:400px}
+.menu-wrap.open>.menu-panel{display:block;animation:menuIn .12s ease-out}
+@keyframes menuIn{from{opacity:0;transform:translateY(-5px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.menu-head{
+  padding:8px 9px 10px;
+  border-bottom:1px solid var(--line-soft);
+  margin-bottom:4px;
+}
+.menu-head strong{display:block;font-size:11px}
+.menu-head span{display:block;font-size:9px;line-height:1.45;color:var(--muted);margin-top:2px}
+.menu-section{
+  padding:9px 7px;
+  border-bottom:1px solid var(--line-soft);
+}
+.menu-section-last{border-bottom:0;padding-bottom:5px}
+.menu-section-title{
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+  color:var(--muted);
+  margin:0 2px 7px;
+  font-weight:700;
+}
+.segmented-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+}
+.segmented-actions button{
+  min-height:33px;
+  font-size:10px;
+  padding:6px 8px;
+}
+.menu-field{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:13px;
+  padding:7px 2px;
+}
+.menu-field>span{min-width:0}
+.menu-field strong{display:block;font-size:10px;font-weight:650}
+.menu-field small{display:block;font-size:8px;color:var(--muted);line-height:1.35;margin-top:2px;font-weight:400}
+.menu-field select{min-width:122px;max-width:145px;font-size:9px;min-height:31px;padding:4px 7px}
+.menu-action{
+  width:100%;
+  min-height:44px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  text-align:left;
+  padding:8px 9px;
+  margin:2px 0;
+  border-color:transparent;
+  background:transparent;
+}
+.menu-action:hover{
+  background:var(--panel2);
+  border-color:var(--line-soft);
+}
+.menu-action>span:first-child{min-width:0}
+.menu-action strong{display:block;font-size:10px;font-weight:650}
+.menu-action small{display:block;font-size:8px;color:var(--muted);line-height:1.35;margin-top:2px;font-weight:400}
+.menu-action>span:last-child{color:var(--muted);font-size:13px}
+.primary-action{
+  background:color-mix(in srgb,var(--accent) 10%,var(--panel));
+  border-color:color-mix(in srgb,var(--accent) 30%,var(--line));
+}
+.danger-action strong{color:color-mix(in srgb,var(--bad) 78%,var(--text))}
+.preset-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:5px 0 8px;
+}
+.preset-card{
+  min-height:72px;
+  padding:10px;
+  text-align:left;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;
+  gap:3px;
+  border-radius:10px;
+}
+.preset-card strong{font-size:10px}
+.preset-card span{font-size:8px;line-height:1.35;color:var(--muted)}
+@media(max-width:900px){
+  .commandbar{flex-wrap:wrap}
+  .search-shell{flex:1 1 100%;min-width:100%}
+  .menu-wrap{flex:1 1 auto}
+  .menu-trigger{width:100%;justify-content:center}
+  .menu-panel,.menu-panel-wide,.menu-panel-settings{
+    position:fixed;
+    left:12px;
+    right:12px;
+    top:auto;
+    width:auto;
+    max-width:none;
+  }
+}
+@media(max-width:520px){
+  .preset-grid{grid-template-columns:1fr}
+  .commandbar{gap:5px}
+  .menu-trigger{font-size:10px;padding:7px 8px}
+}
+
 </style>
 </head>
 <body>
@@ -367,37 +568,144 @@ table{border-collapse:collapse;width:100%;font-size:10px}th,td{padding:6px 8px;b
 </header>
 
 <div class="toolbar">
- <div class="toolbar-row">
-  <input class="search" type="text" id="search" placeholder="Search all readings — GPU, CPU, PresentMon, VRAM, SSD, temperature…">
-  <span class="label-mini">Graph</span>
-  <select id="window"><option value="60">60 s</option><option value="300" selected>5 min</option><option value="900">15 min</option><option value="1800">30 min</option><option value="3600">60 min</option></select>
-  <span class="label-mini">Browser poll</span>
-  <select id="clientPoll"><option value="250">250 ms</option><option value="500" selected>500 ms</option><option value="1000">1 s</option><option value="2000">2 s</option></select>
-  <span class="label-mini">Theme</span>
-  <select id="theme"><option value="system">System</option><option value="dark">Dark</option><option value="light">Light</option></select>
-  <button id="pause">Pause</button>
-  <button class="danger" id="reset">Reset session</button>
- </div>
- <div class="toolbar-row">
-  <span class="label-mini">Essential presets</span>
-  <button data-preset="gaming">Gaming</button><button data-preset="gpu">GPU</button><button data-preset="cpu">CPU</button><button data-preset="memory">Memory</button>
-  <button class="primary" data-preset="all">All essentials</button>
-  <span class="sep"></span>
-  <span class="label-mini">Groups</span>
-  <button id="expandAll">Expand all</button><button id="collapseAll">Collapse all</button>
-  <span class="sep"></span>
-  <span class="label-mini">Pinned graphs</span>
-  <button id="graphsOn">All on</button><button id="graphsOff">All off</button>
-  <span class="sep"></span>
-  <span class="label-mini">Large value</span>
-  <select id="globalMode"><option value="current">Current</option><option value="min">Session min</option><option value="avg">Session average</option><option value="max">Session max</option></select>
-  <button id="applyMode">Apply to all</button>
-  <span class="spacer"></span>
-  <button id="exportCsv">Export CSV</button>
-  <button id="exportSetup">Export setup</button>
-  <button id="importSetup">Import setup</button>
-  <input id="importFile" type="file" accept=".json,application/json" class="hidden">
-  <button id="clearPins">Clear pins</button>
+ <div class="commandbar">
+  <div class="search-shell">
+   <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m1.35-5.65a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/></svg>
+   <input class="search" type="text" id="search" placeholder="Search sensors, readings, temperatures, clocks…">
+  </div>
+
+  <div class="menu-wrap">
+   <button class="menu-trigger" type="button" data-menu-trigger="menuPresets">Presets</button>
+   <div class="menu-panel menu-panel-wide" id="menuPresets">
+    <div class="menu-head">
+     <div><strong>Essential presets</strong><span>Build a useful debug dashboard in one click.</span></div>
+    </div>
+    <div class="preset-grid">
+     <button class="preset-card" data-preset="gaming" data-menu-action><strong>Gaming</strong><span>FPS, frame time, GPU busy and latency</span></button>
+     <button class="preset-card" data-preset="gpu" data-menu-action><strong>GPU</strong><span>Load, temperature, power, clocks and VRAM</span></button>
+     <button class="preset-card" data-preset="cpu" data-menu-action><strong>CPU</strong><span>Usage, temperature, package power and clocks</span></button>
+     <button class="preset-card" data-preset="memory" data-menu-action><strong>Memory</strong><span>RAM, VRAM and memory pressure</span></button>
+    </div>
+    <button class="menu-action primary-action" data-preset="all" data-menu-action>
+     <span><strong>All essentials</strong><small>Gaming + GPU + CPU + Memory</small></span><span>→</span>
+    </button>
+   </div>
+  </div>
+
+  <div class="menu-wrap">
+   <button class="menu-trigger" type="button" data-menu-trigger="menuDashboard">Dashboard</button>
+   <div class="menu-panel" id="menuDashboard">
+    <div class="menu-head"><div><strong>Dashboard view</strong><span>Control cards and sensor groups.</span></div></div>
+
+    <div class="menu-section">
+     <div class="menu-section-title">Sensor groups</div>
+     <div class="segmented-actions">
+      <button id="expandAll" data-menu-action>Expand all</button>
+      <button id="collapseAll" data-menu-action>Collapse all</button>
+     </div>
+    </div>
+
+    <div class="menu-section">
+     <div class="menu-section-title">Pinned graphs</div>
+     <div class="segmented-actions">
+      <button id="graphsOn" data-menu-action>Show all</button>
+      <button id="graphsOff" data-menu-action>Hide all</button>
+     </div>
+    </div>
+
+    <div class="menu-section">
+     <label class="menu-field">
+      <span><strong>Large card value</strong><small>The four Current / Min / Avg / Max values always stay visible.</small></span>
+      <select id="globalMode">
+       <option value="current">Current</option>
+       <option value="min">Session minimum</option>
+       <option value="avg">Session average</option>
+       <option value="max">Session maximum</option>
+      </select>
+     </label>
+     <button class="menu-action" id="applyMode" data-menu-action>
+      <span><strong>Apply to every pinned card</strong><small>Changes only the large headline number.</small></span><span>→</span>
+     </button>
+    </div>
+
+    <div class="menu-section menu-section-last">
+     <button class="menu-action danger-action" id="clearPins" data-menu-action>
+      <span><strong>Clear pinned dashboard</strong><small>Does not delete collected HWiNFO data.</small></span>
+     </button>
+    </div>
+   </div>
+  </div>
+
+  <div class="menu-wrap">
+   <button class="menu-trigger" type="button" data-menu-trigger="menuSession">Session</button>
+   <div class="menu-panel" id="menuSession">
+    <div class="menu-head"><div><strong>Debug session</strong><span>Control collection and export telemetry.</span></div></div>
+
+    <button class="menu-action" id="pause">
+     <span><strong data-pause-title>Pause collection</strong><small data-pause-sub>Freeze browser polling without clearing history.</small></span><span>Ⅱ</span>
+    </button>
+
+    <button class="menu-action danger-action" id="reset" data-menu-action>
+     <span><strong>Reset session</strong><small>Clear local graphs, session statistics and sampled FPS percentiles.</small></span>
+    </button>
+
+    <div class="menu-section menu-section-last">
+     <button class="menu-action" id="exportCsv" data-menu-action>
+      <span><strong>Export telemetry CSV</strong><small>Download the collected pinned-sensor history.</small></span><span>↓</span>
+     </button>
+    </div>
+   </div>
+  </div>
+
+  <div class="menu-wrap">
+   <button class="menu-trigger settings-trigger" type="button" data-menu-trigger="menuSettings">Settings</button>
+   <div class="menu-panel menu-panel-settings" id="menuSettings">
+    <div class="menu-head"><div><strong>Performance Lab settings</strong><span>Display, refresh and portable dashboard configuration.</span></div></div>
+
+    <div class="menu-section">
+     <label class="menu-field">
+      <span><strong>Graph history</strong><small>Visible time window for pinned charts.</small></span>
+      <select id="window">
+       <option value="60">60 seconds</option>
+       <option value="300" selected>5 minutes</option>
+       <option value="900">15 minutes</option>
+       <option value="1800">30 minutes</option>
+       <option value="3600">60 minutes</option>
+      </select>
+     </label>
+
+     <label class="menu-field">
+      <span><strong>Browser refresh</strong><small>How often the dashboard checks for a new HWiNFO source update.</small></span>
+      <select id="clientPoll">
+       <option value="250">250 ms</option>
+       <option value="500" selected>500 ms</option>
+       <option value="1000">1 second</option>
+       <option value="2000">2 seconds</option>
+      </select>
+     </label>
+
+     <label class="menu-field">
+      <span><strong>Appearance</strong><small>Follow the operating system or force a theme.</small></span>
+      <select id="theme">
+       <option value="system">System</option>
+       <option value="dark">Dark</option>
+       <option value="light">Light</option>
+      </select>
+     </label>
+    </div>
+
+    <div class="menu-section menu-section-last">
+     <div class="menu-section-title">Portable setup</div>
+     <button class="menu-action" id="exportSetup" data-menu-action>
+      <span><strong>Export dashboard setup</strong><small>Save pins, order, card options, graph settings, theme and FPS sources.</small></span><span>↓</span>
+     </button>
+     <button class="menu-action" id="importSetup" data-menu-action>
+      <span><strong>Import dashboard setup</strong><small>Restore the layout on this or another PC.</small></span><span>↑</span>
+     </button>
+     <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+    </div>
+   </div>
+  </div>
  </div>
 </div>
 
@@ -875,6 +1183,26 @@ async function fetchOnce(){
 }
 function schedulePoll(){clearTimeout(S.pollTimer);const delay=Number($('clientPoll').value)||500;S.pollTimer=setTimeout(async()=>{await fetchOnce();schedulePoll()},delay)}
 
+
+function closeMenus(except=null){
+ document.querySelectorAll('.menu-wrap.open').forEach(w=>{
+  if(w!==except)w.classList.remove('open');
+ });
+}
+document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
+ btn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const wrap=btn.closest('.menu-wrap');
+  const opening=!wrap.classList.contains('open');
+  closeMenus(wrap);
+  wrap.classList.toggle('open',opening);
+ });
+});
+document.querySelectorAll('.menu-panel').forEach(panel=>panel.addEventListener('click',e=>e.stopPropagation()));
+document.querySelectorAll('[data-menu-action]').forEach(el=>el.addEventListener('click',()=>setTimeout(()=>closeMenus(),0)));
+document.addEventListener('click',()=>closeMenus());
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenus()});
+
 $('search').addEventListener('input',()=>{S.topology='';renderGroupsStructure(true)});
 $('window').addEventListener('change',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
 $('clientPoll').addEventListener('change',schedulePoll);
@@ -882,7 +1210,15 @@ $('theme').addEventListener('change',e=>applyTheme(e.target.value));
 $('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();updateDynamic()});
 $('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();updateDynamic()});
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
-$('pause').onclick=()=>{S.paused=!S.paused;$('pause').textContent=S.paused?'Resume':'Pause';updateStatus();if(!S.paused){fetchOnce();schedulePoll()}};
+$('pause').onclick=()=>{
+ S.paused=!S.paused;
+ const title=$('pause').querySelector('[data-pause-title]');
+ const sub=$('pause').querySelector('[data-pause-sub]');
+ if(title)title.textContent=S.paused?'Resume collection':'Pause collection';
+ if(sub)sub.textContent=S.paused?'Continue browser polling and telemetry collection.':'Freeze browser polling without clearing history.';
+ updateStatus();
+ if(!S.paused){fetchOnce();schedulePoll()}
+};
 $('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
 $('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
 $('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
