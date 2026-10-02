@@ -1,41 +1,84 @@
-HWiNFO PERFORMANCE LAB v6.7.2
-=============================
+HWiNFO PERFORMANCE LAB v6.8
+===========================
 
-TYPOGRAPHY SCALE
-----------------
-Settings -> Minimum font size
+LAPS
+----
+A session can now contain multiple non-destructive laps.
 
-Available values:
-- 11 px
-- 12 px
-- 13 px
-- 14 px
-- 15 px
-- 16 px
+Default view:
+  Current lap
 
-The selected value is a true minimum:
-no dashboard text is intentionally rendered smaller than it.
+Controls:
+  New lap
+  View:
+    Current lap
+    All session
+    Lap 1
+    Lap 2
+    ...
 
-Larger typography scales proportionally from the same setting, so choosing
-14 px does not merely enlarge tiny labels; headings, values, menus and card
-text grow together while preserving visual hierarchy.
+Starting a new lap DOES NOT delete any data.
 
-Example:
-Minimum font = 11 px
-  old 8/9/10/11 px text -> 11 px minimum
-  23 px heading         -> 23 px
-  29 px pinned value    -> 29 px
+The selected scope affects:
+- pinned telemetry Min / Avg / Max
+- pinned telemetry charts
+- FPS session analysis
+- telemetry CSV export
 
-Minimum font = 14 px
-  smallest text         -> 14 px
-  former 23 px heading  -> ~29 px
-  former 29 px value    -> ~37 px
+When viewing a completed historical lap, its chart shows that whole lap.
+Current-lap and all-session charts still obey the selected graph-window setting.
 
-The setting:
-- persists in the browser
-- is included in Export setup
-- is restored by Import setup
-- triggers chart redraw after font/layout changes
+The card labels change with scope:
+- Current lap -> Lap min / Lap avg / Lap max
+- All session -> Session min / Session avg / Session max
+- Historical lap -> Lap N min / avg / max
 
-This build is based on the V6.7.1 runtime hotfix, so the restored HWiNFO
-sampling / pinned-card / graph functions are retained.
+For a completed historical lap, "Current" becomes the final sample from that lap.
+
+FPS ANALYSIS RESET
+------------------
+FPS session analysis now has its own:
+  Reset FPS analysis
+
+It clears ONLY:
+- FPS analysis samples
+- frame-time analysis samples
+- FPS percentiles / ranges calculated from those samples
+
+It does NOT clear:
+- pinned telemetry history
+- lap markers
+- session timer
+- hardware sensor history
+
+Changing the FPS source or frame-time source automatically restarts FPS analysis
+to prevent values from different sources being mixed.
+
+FULL SESSION RESET
+------------------
+Session -> Reset session still performs the destructive full reset:
+- pinned history
+- all laps
+- FPS analysis
+- session timer
+
+HWiNFO's own built-in Min/Max/Avg are never reset by this dashboard.
+
+HISTORY
+-------
+Pinned telemetry is retained for the full in-browser session rather than being
+trimmed to one hour, so "All session" really represents the current session.
+
+CSV
+---
+Export telemetry CSV exports the currently selected scope (current lap, all
+session, or a completed lap).
+
+All prior v6.7.2 features remain:
+- customizable overview
+- aggregate thermal-throttling status
+- health colors
+- Target FPS Off
+- portable setup export/import
+- font-size scaling
+- stable dropdowns during telemetry refresh

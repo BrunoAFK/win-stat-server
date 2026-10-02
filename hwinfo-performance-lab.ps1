@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.7.2</title>
+<title>HWiNFO Performance Lab v6.8</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -754,6 +754,29 @@ select{
   .overview-editor-backdrop{padding:10px}
 }
 
+
+/* v6.8 session laps + scoped telemetry */
+.session-scope{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+}
+.session-scope>span{white-space:nowrap}
+.session-scope select{
+  min-height:32px!important;
+  padding-top:4px!important;
+  padding-bottom:4px!important;
+  min-width:150px;
+}
+.session-mini-btn{
+  min-height:32px;
+  padding:5px 10px;
+  font-size:max(var(--ui-min-font),calc(10px * var(--ui-font-scale)));
+}
+.sourcebar .spacer{flex:1}
+#resetFpsAnalysis{white-space:nowrap}
+
 </style>
 </head>
 <body>
@@ -847,6 +870,10 @@ select{
 
     <button class="menu-action" id="pause">
      <span><strong data-pause-title>Pause collection</strong><small data-pause-sub>Freeze browser polling without clearing history.</small></span><span>Ⅱ</span>
+    </button>
+
+    <button class="menu-action" id="newLapMenu" data-menu-action>
+     <span><strong>Start new lap</strong><small>Begin a fresh comparison interval without deleting session history.</small></span><span>＋</span>
     </button>
 
     <button class="menu-action danger-action" id="reset" data-menu-action>
@@ -951,6 +978,9 @@ select{
 <div id="error"></div>
 <div class="sessionbar">
  <span>Session <strong id="elapsed">00:00</strong></span><span class="dot"></span>
+ <span>Current lap <strong id="lapElapsed">00:00</strong></span><span class="dot"></span>
+ <label class="session-scope"><span>View</span><select id="lapView"><option value="current">Current lap</option><option value="all">All session</option></select></label>
+ <button type="button" class="session-mini-btn" id="newLapQuick">New lap</button><span class="dot"></span>
  <span>Source samples <strong id="sampleCount">0</strong></span><span class="dot"></span>
  <span>HWiNFO poll <strong id="sourcePoll">—</strong></span><span class="dot"></span>
  <span>Last source update <strong id="sourceUpdate">—</strong></span>
@@ -1012,11 +1042,14 @@ select{
 <div class="dropzone" id="dropzone">Drop a sensor here to pin it</div>
 <div class="pingrid" id="pinHost"></div>
 
-<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Uses one sample per HWiNFO source update. Percentiles are sampled telemetry, not raw per-frame PresentMon 1% / 0.1% lows.</p></div></div>
+<div class="sectionhead"><div><h2>FPS session analysis</h2><p>Scope: <strong id="fpsScopeLabel">Current lap</strong>. FPS analysis can be reset independently. Percentiles use HWiNFO polling samples, not raw per-frame PresentMon data.</p></div></div>
 <div class="sourcebar">
  <div class="source-group"><label for="fpsSource">FPS source</label><select id="fpsSource"><option value="">Auto detect</option></select></div>
  <div class="source-group"><label for="ftSource">Frame-time source</label><select id="ftSource"><option value="">Auto detect</option></select></div>
  <span class="source-state" id="fpsSourceState">waiting for HWiNFO…</span>
+ <span class="spacer"></span>
+ <span class="source-state">Analysis <strong id="fpsAnalysisElapsed">00:00</strong></span>
+ <button type="button" id="resetFpsAnalysis">Reset FPS analysis</button>
 </div>
 <div class="fpsgrid">
  <div class="metric"><div class="k">Average FPS</div><div class="v" id="fpsAvg">—</div><div class="d">Session sample average</div></div>
@@ -1218,7 +1251,10 @@ const S={
  pendingImport:null,
  overviewEditing:null,
  overviewDragKey:null,
- overviewConfig:JSON.parse(localStorage.getItem('hpl-v67-overview')||'null')
+ overviewConfig:JSON.parse(localStorage.getItem('hpl-v67-overview')||'null'),
+ laps:[{id:1,start:Date.now()}],
+ viewScope:'current',
+ fpsAnalysis:{fps:[],ft:[],startedAt:Date.now()}
 };
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
@@ -1602,12 +1638,114 @@ $('overviewEditorReset').addEventListener('click',()=>{
 });
 
 
+function currentLap(){return S.laps[S.laps.length-1]||{id:1,start:S.sessionStart}}
+
+function formatDuration(ms){
+ const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;
+ return h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function scopeRange(){
+ const now=Date.now();
+ if(S.viewScope==='all')return {start:S.sessionStart,end:now,label:'All session',historical:false};
+ if(S.viewScope==='current'){
+   const lap=currentLap();
+   return {start:lap.start,end:now,label:`Current lap · Lap ${lap.id}`,historical:false,lapId:lap.id};
+ }
+ const m=/^lap:(\d+)$/.exec(S.viewScope||'');
+ if(m){
+   const id=Number(m[1]),i=S.laps.findIndex(l=>l.id===id);
+   if(i>=0){
+     const lap=S.laps[i],end=i+1<S.laps.length?S.laps[i+1].start:now;
+     return {start:lap.start,end,label:`Lap ${lap.id}`,historical:i<S.laps.length-1,lapId:lap.id};
+   }
+ }
+ const lap=currentLap();
+ S.viewScope='current';
+ return {start:lap.start,end:now,label:`Current lap · Lap ${lap.id}`,historical:false,lapId:lap.id};
+}
+
+function scopedArray(arr){
+ const rg=scopeRange();
+ return (arr||[]).filter(p=>p.t>=rg.start&&p.t<=rg.end);
+}
+function scopedHistory(k){return scopedArray(S.histories.get(k)||[])}
+
+function syncLapSelector(){
+ const el=$('lapView');if(!el)return;
+ const value=S.viewScope||'current';
+ const previous=S.laps.slice(0,-1);
+ el.innerHTML=`<option value="current">Current lap (Lap ${currentLap().id})</option><option value="all">All session</option>`+
+   previous.map(l=>`<option value="lap:${l.id}">Lap ${l.id}</option>`).join('');
+ el.value=[...el.options].some(o=>o.value===value)?value:'current';
+ if(el.value!==value)S.viewScope='current';
+ updateScopeLabels();
+}
+function updateScopeLabels(){
+ const rg=scopeRange();
+ if($('fpsScopeLabel'))$('fpsScopeLabel').textContent=rg.label;
+}
+function setViewScope(value){
+ S.viewScope=value||'current';
+ syncLapSelector();
+ updateDynamic();
+}
+
+function newLap(){
+ const now=Date.now();
+ const last=currentLap();
+ // Avoid accidental double-click laps separated by less than one second.
+ if(last&&now-last.start<1000){toast('Current lap just started');return}
+ const id=(last?.id||0)+1;
+ S.laps.push({id,start:now});
+ if(S.viewScope==='current')S.viewScope='current';
+ syncLapSelector();
+ updateDynamic();
+ toast(`Lap ${id} started`);
+}
+
+function resetLapState(){
+ const now=Date.now();
+ S.laps=[{id:1,start:now}];
+ S.viewScope='current';
+ syncLapSelector();
+}
+
+function resetFpsAnalysis(confirmFirst=true){
+ if(confirmFirst&&!confirm('Reset only FPS / frame-time analysis? Pinned telemetry, session history and laps will stay untouched.'))return;
+ S.fpsAnalysis={fps:[],ft:[],startedAt:Date.now()};
+ updateFps();
+ toast('FPS analysis reset');
+}
+
+function fpsAnalysisArray(type){
+ return scopedArray(S.fpsAnalysis?.[type]||[]);
+}
+
+function scopedCurrentValue(k,r){
+ const rg=scopeRange();
+ if(!rg.historical)return r?.Value;
+ const a=scopedHistory(k);
+ return a.length?a[a.length-1].v:null;
+}
+
+function scopeStatLabel(kind){
+ const rg=scopeRange();
+ if(S.viewScope==='all')return `Session ${kind}`;
+ if(rg.historical)return `Lap ${rg.lapId} ${kind}`;
+ return `Lap ${kind}`;
+}
+
 function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
 function addSample(k,v){
  v=n(v);if(v===null||!k)return;
  if(!S.histories.has(k))S.histories.set(k,[]);
- const a=S.histories.get(k),now=Date.now();a.push({t:now,v});
- const keep=60*60*1000;while(a.length&&now-a[0].t>keep)a.shift();
+ S.histories.get(k).push({t:Date.now(),v});
+}
+function addFpsAnalysisSample(type,v){
+ v=n(v);if(v===null)return;
+ if(!S.fpsAnalysis)S.fpsAnalysis={fps:[],ft:[],startedAt:Date.now()};
+ S.fpsAnalysis[type].push({t:Date.now(),v});
 }
 function sampleNewSource(){
  if(!S.latest?.Ok)return;
@@ -1615,9 +1753,17 @@ function sampleNewSource(){
  const token=String(S.latest.PollTimeUnix||'');
  if(token&&token===S.lastSourceToken)return;
  S.lastSourceToken=token;S.samples++;
- const keys=new Set(S.pins);
- if(S.fpsKey)keys.add(S.fpsKey);if(S.ftKey)keys.add(S.ftKey);
- for(const k of keys){const r=reading(k);if(r)addSample(k,r.Value)}
+
+ // Pinned telemetry owns its own full-session history.
+ for(const k of new Set(S.pins)){
+   const r=reading(k);if(r)addSample(k,r.Value);
+ }
+
+ // FPS analysis is intentionally separate so it can be reset without touching pins/laps.
+ const fps=selectedSource('fps'),ft=selectedSource('ft');
+ if(fps)addFpsAnalysisSample('fps',fps.Value);
+ if(ft)addFpsAnalysisSample('ft',ft.Value);
+
  $('sampleCount').textContent=S.samples;
 }
 function rolling(arr,sec){
@@ -1656,10 +1802,10 @@ function cardHtml(k,r){
    </div></div>
   <div class="pin-primary"><div><div class="big" data-pin-primary>—</div><div class="smallmode" data-pin-mode>Current</div></div></div>
   <div class="statgrid">
-   <div class="sbox"><div class="k">Current</div><div class="v" data-pin-stat="cur">—</div></div>
-   <div class="sbox"><div class="k">Session min</div><div class="v" data-pin-stat="min">—</div></div>
-   <div class="sbox"><div class="k">Session avg</div><div class="v" data-pin-stat="avg">—</div></div>
-   <div class="sbox"><div class="k">Session max</div><div class="v" data-pin-stat="max">—</div></div>
+   <div class="sbox"><div class="k" data-pin-label="cur">Current</div><div class="v" data-pin-stat="cur">—</div></div>
+   <div class="sbox"><div class="k" data-pin-label="min">Lap min</div><div class="v" data-pin-stat="min">—</div></div>
+   <div class="sbox"><div class="k" data-pin-label="avg">Lap avg</div><div class="v" data-pin-stat="avg">—</div></div>
+   <div class="sbox"><div class="k" data-pin-label="max">Lap max</div><div class="v" data-pin-stat="max">—</div></div>
   </div>
   <div class="chartbox"><canvas></canvas><div class="chart-legend" data-chartlegend>0 samples</div></div>
   <div class="pin-foot" data-card-controls>
@@ -1722,14 +1868,21 @@ function drawCanvas(canvas,k,ratioOverride=null){
  const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,devicePixelRatio||1),w=Math.max(1,Math.floor(rect.width*dpr)),h=Math.max(1,Math.floor(rect.height*dpr));
  if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h}
  const c=canvas.getContext('2d');c.clearRect(0,0,w,h);
- const seconds=Number($('window').value)||300,cut=Date.now()-seconds*1000;
- let pts=(S.histories.get(k)||[]).filter(p=>p.t>=cut&&Number.isFinite(p.v));if(o.smooth)pts=rolling(pts,5);if(pts.length<2){S.hoverCharts.set(k,{pts,plot:null});return}
+ const seconds=Number($('window').value)||300,rg=scopeRange();
+ let pts=(S.histories.get(k)||[]).filter(p=>p.t>=rg.start&&p.t<=rg.end&&Number.isFinite(p.v));
+ // Current lap / all-session views obey the chosen rolling graph window.
+ // A completed historical lap shows the whole lap, which is more useful for comparison.
+ if(!rg.historical){
+   const cut=Math.max(rg.start,rg.end-seconds*1000);
+   pts=pts.filter(p=>p.t>=cut);
+ }
+ if(o.smooth)pts=rolling(pts,5);if(pts.length<2){S.hoverCharts.set(k,{pts,plot:null});return}
  const vals=pts.map(p=>p.v);let lo=Math.min(...vals),hi=Math.max(...vals);if(lo===hi){lo-=1;hi+=1}const pad=(hi-lo)*.10;lo-=pad;hi+=pad;
  const L=4*dpr,R=w-4*dpr,T=4*dpr,B=h-14*dpr,colors=graphColors();
  c.strokeStyle=colors.grid;c.lineWidth=1*dpr;for(let i=0;i<3;i++){const y=T+(B-T)*i/2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()}
  const t0=pts[0].t,t1=pts.at(-1).t||t0+1;c.strokeStyle=colors.line;c.lineWidth=1.6*dpr;c.beginPath();
  pts.forEach((p,i)=>{const x=L+(R-L)*(p.t-t0)/Math.max(1,t1-t0),y=B-(B-T)*(p.v-lo)/(hi-lo);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();
- c.font=`${8*dpr}px Segoe UI`;c.fillStyle=colors.muted;c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);
+ c.font=`${Math.max(11,Number(S.minFontPx)||11)*dpr}px Segoe UI`;c.fillStyle=colors.muted;c.fillText(fmt(hi,r.Unit,true),6*dpr,10*dpr);c.fillText(fmt(lo,r.Unit,true),6*dpr,h-2*dpr);
  const ratio=ratioOverride!==null?ratioOverride:S.hoverRatio.get(k);
  if(ratio!==undefined&&ratio!==null){
   const target=t0+(t1-t0)*ratio;let bi=0,bd=Infinity;pts.forEach((p,i)=>{const d=Math.abs(p.t-target);if(d<bd){bd=d;bi=i}});
@@ -1749,15 +1902,25 @@ function bindChartHover(canvas,k){
  canvas.onpointerleave=()=>{S.hoverRatio.delete(k);$('tooltip').style.display='none';drawCanvas(canvas,k,null)}
 }
 function drawOneCard(card,k){
- const r=reading(k);if(!card||!r)return;const st=calc(S.histories.get(k)||[]),o=ensureOpt(k);
- const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:r.Value;
+ const r=reading(k);if(!card||!r)return;
+ const scoped=scopedHistory(k),st=calc(scoped),o=ensureOpt(k),rg=scopeRange();
+ const current=scopedCurrentValue(k,r);
+ const primary=o.mode==='min'?st.min:o.mode==='avg'?st.avg:o.mode==='max'?st.max:current;
+
  const primaryEl=card.querySelector('[data-pin-primary]');
  primaryEl.textContent=displayReading(r,primary);applyHealth(primaryEl,r,primary);
- for(const [f,v] of [['cur',r.Value],['min',st.min],['avg',st.avg],['max',st.max]]){
+
+ const curLabel=card.querySelector('[data-pin-label="cur"]');
+ if(curLabel)curLabel.textContent=rg.historical?'Lap end':'Current';
+ for(const kind of ['min','avg','max']){
+   const label=card.querySelector(`[data-pin-label="${kind}"]`);
+   if(label)label.textContent=scopeStatLabel(kind);
+ }
+ for(const [f,v] of [['cur',current],['min',st.min],['avg',st.avg],['max',st.max]]){
    const el=card.querySelector(`[data-pin-stat="${f}"]`);
    el.textContent=displayReading(r,v);applyHealth(el,r,v);
  }
- card.querySelector('[data-chartlegend]').textContent=`${st.count} source samples${o.smooth?' • 5s rolling average':''}`;
+ card.querySelector('[data-chartlegend]').textContent=`${rg.label} • ${st.count} samples${o.smooth?' • 5s rolling average':''}`;
  if(o.graph!==false)drawCanvas(card.querySelector('canvas'),k,null);
 }
 function updatePins(){
@@ -1768,8 +1931,8 @@ function updatePins(){
 }
 
 function updateFps(){
- const fv=(S.histories.get(S.fpsKey)||[]).map(x=>x.v).filter(Number.isFinite),
-       tv=(S.histories.get(S.ftKey)||[]).map(x=>x.v).filter(Number.isFinite);
+ const fv=fpsAnalysisArray('fps').map(x=>x.v).filter(Number.isFinite),
+       tv=fpsAnalysisArray('ft').map(x=>x.v).filter(Number.isFinite);
  const fpsR=reading(S.fpsKey),ftR=reading(S.ftKey);
  const set=(id,display,value,type,r)=>{
    const el=$(id);el.textContent=display;
@@ -1899,12 +2062,26 @@ function applyPreset(which){
 function collapseAll(collapse){document.querySelectorAll('.group').forEach(g=>{const name=g.dataset.group,body=g.querySelector('.group-body'),chev=g.querySelector('.chev');body.classList.toggle('hidden',collapse);chev.textContent=collapse?'▸':'▾';collapse?S.collapsed.add(name):S.collapsed.delete(name)})}
 function applyAllGraphs(on){for(const k of S.pins)ensureOpt(k).graph=on;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
 function applyAllMode(){const mode=$('globalMode').value;for(const k of S.pins)ensureOpt(k).mode=mode;save();document.querySelectorAll('.pin-card').forEach(c=>{applyCardPresentation(c,c.dataset.key);drawOneCard(c,c.dataset.key)})}
-function resetSession(){if(!confirm('Reset local graph history, session min/max/average and sampled FPS percentiles? HWiNFO built-in Min/Max/Avg remain untouched.'))return;S.histories=new Map();S.samples=0;S.sessionStart=Date.now();S.lastSourceToken=null;$('sampleCount').textContent='0';updateDynamic();toast('Session history reset')}
+function resetSession(){
+ if(!confirm('Reset the entire local session? This clears pinned telemetry history, all laps and FPS analysis. HWiNFO built-in Min/Max/Avg remain untouched.'))return;
+ const now=Date.now();
+ S.histories=new Map();S.samples=0;S.sessionStart=now;S.lastSourceToken=null;
+ S.fpsAnalysis={fps:[],ft:[],startedAt:now};
+ resetLapState();
+ $('sampleCount').textContent='0';updateDynamic();toast('Entire session reset');
+}
 function clearPins(){if(!S.pins.length)return;if(!confirm('Remove all pinned cards?'))return;S.pins=[];save();syncPinsStructure();syncGroupStars()}
 function exportCsv(){
- const keys=[...new Set([...S.pins,S.fpsKey,S.ftKey].filter(Boolean))],rows=['timestamp,sensor,label,value,unit'];
- for(const k of keys){const r=reading(k);if(!r)continue;for(const p of S.histories.get(k)||[]){const q=s=>`"${String(s??'').replaceAll('"','""')}"`;rows.push([new Date(p.t).toISOString(),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','))}}
- downloadBlob(rows.join('\n'),'text/csv',`hwinfo-session-${stamp()}.csv`)
+ const rg=scopeRange(),keys=[...new Set(S.pins.filter(Boolean))],rows=['timestamp,scope,sensor,label,value,unit'];
+ for(const k of keys){
+   const r=reading(k);if(!r)continue;
+   for(const p of scopedHistory(k)){
+     const q=s=>`"${String(s??'').replaceAll('"','""')}"`;
+     rows.push([new Date(p.t).toISOString(),q(rg.label),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','));
+   }
+ }
+ const scopeName=rg.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ downloadBlob(rows.join('\n'),'text/csv',`hwinfo-${scopeName||'session'}-${stamp()}.csv`)
 }
 function stamp(){return new Date().toISOString().replace(/[:.]/g,'-')}
 function downloadBlob(content,type,name){const blob=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
@@ -1993,8 +2170,8 @@ $('healthColors').checked=S.healthColors;
 $('targetFps').value=String(S.targetFps);
 $('healthColors').addEventListener('change',e=>{S.healthColors=e.target.checked;save();updateDynamic()});
 $('targetFps').addEventListener('change',e=>{const tf=Number(e.target.value);S.targetFps=Number.isFinite(tf)?tf:60;save();updateDynamic()});
-$('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();updateDynamic()});
-$('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();updateDynamic()});
+$('fpsSource').addEventListener('change',e=>{S.fpsPref=e.target.value;save();updateSourceState();resetFpsAnalysis(false);updateDynamic();toast('FPS source changed • analysis restarted')});
+$('ftSource').addEventListener('change',e=>{S.ftPref=e.target.value;save();updateSourceState();resetFpsAnalysis(false);updateDynamic();toast('Frame-time source changed • analysis restarted')});
 document.querySelectorAll('[data-preset]').forEach(b=>b.onclick=()=>applyPreset(b.dataset.preset));
 $('pause').onclick=()=>{
  S.paused=!S.paused;
@@ -2006,15 +2183,24 @@ $('pause').onclick=()=>{
  if(!S.paused){fetchOnce();schedulePoll()}
 };
 $('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
+$('newLapQuick').onclick=newLap;$('newLapMenu').onclick=newLap;
+$('lapView').addEventListener('change',e=>setViewScope(e.target.value));
+$('resetFpsAnalysis').onclick=()=>resetFpsAnalysis(true);
 $('expandAll').onclick=()=>collapseAll(false);$('collapseAll').onclick=()=>collapseAll(true);
 $('graphsOn').onclick=()=>applyAllGraphs(true);$('graphsOff').onclick=()=>applyAllGraphs(false);
 $('controlsOn').onclick=()=>applyAllControls(true);$('controlsOff').onclick=()=>applyAllControls(false);
 $('applyMode').onclick=applyAllMode;$('clearPins').onclick=clearPins;
 $('exportSetup').onclick=exportSetup;$('importSetup').onclick=()=>$('importFile').click();$('importFile').onchange=e=>{if(e.target.files?.[0])importSetupFile(e.target.files[0])};
 document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>{S.category=b.dataset.filter;setFilterButtons();S.topology='';renderGroupsStructure(true)});
-bindGlobalDnD();applyTheme(S.themePref);applyTypographyScale(S.minFontPx);setFilterButtons();ensureOverviewConfig();renderOverviewStructure();
+bindGlobalDnD();applyTheme(S.themePref);applyTypographyScale(S.minFontPx);setFilterButtons();ensureOverviewConfig();renderOverviewStructure();syncLapSelector();
 
-setInterval(()=>{const s=Math.floor((Date.now()-S.sessionStart)/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60;$('elapsed').textContent=h?`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`:`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;updateStatus()},500);
+setInterval(()=>{
+ const now=Date.now();
+ $('elapsed').textContent=formatDuration(now-S.sessionStart);
+ $('lapElapsed').textContent=formatDuration(now-currentLap().start);
+ $('fpsAnalysisElapsed').textContent=formatDuration(now-(S.fpsAnalysis?.startedAt||now));
+ updateStatus();
+},500);
 window.addEventListener('resize',()=>document.querySelectorAll('.pin-card').forEach(c=>drawOneCard(c,c.dataset.key)));
 fetchOnce();schedulePoll();
 </script>
