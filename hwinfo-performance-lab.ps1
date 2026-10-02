@@ -261,7 +261,7 @@ $html = @'
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HWiNFO Performance Lab v6.9.2</title>
+<title>HWiNFO Performance Lab v7.0</title>
 <style>
 :root{
   --ui-min-font:11px;--ui-font-scale:1;
@@ -1118,12 +1118,83 @@ select{
   }
 }
 
+
+/* v7 analysis snapshot */
+.scope-analysis{
+  margin-top:9px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--panel);
+}
+.scope-analysis-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  background:var(--panel2);
+  border-bottom:1px solid var(--line-soft);
+}
+.scope-analysis-head strong{
+  font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)));
+}
+.scope-analysis-head span{
+  color:var(--muted);
+  text-align:right;
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.scope-analysis-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.analysis-group{
+  padding:9px 10px;
+  border-right:1px solid var(--line-soft);
+}
+.analysis-group:last-child{border-right:0}
+.analysis-group-title{
+  margin-bottom:6px;
+  color:var(--muted);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-weight:750;
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.analysis-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  padding:3px 0;
+}
+.analysis-row span{
+  color:var(--muted);
+  min-width:0;
+  font-size:max(var(--ui-min-font),calc(9px * var(--ui-font-scale)));
+}
+.analysis-row strong{
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+  font-size:max(var(--ui-min-font),calc(10px * var(--ui-font-scale)));
+}
+@media(max-width:1100px){
+  .scope-analysis-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .analysis-group:nth-child(2){border-right:0}
+  .analysis-group:nth-child(-n+2){border-bottom:1px solid var(--line-soft)}
+}
+@media(max-width:650px){
+  .scope-analysis-grid{grid-template-columns:1fr}
+  .analysis-group{border-right:0;border-bottom:1px solid var(--line-soft)}
+  .analysis-group:last-child{border-bottom:0}
+}
+
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
- <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)))">v6.9.2</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
+ <div class="brand"><h1>HWiNFO Performance Lab <span style="color:var(--muted);font-size:max(var(--ui-min-font),calc(11px * var(--ui-font-scale)))">v7.0</span></h1><p id="meta">Connecting to HWiNFO shared memory…</p></div>
  <div class="livebox"><span class="badge" id="status">CONNECTING</span><span class="age" id="age">—</span></div>
 </header>
 
@@ -1226,8 +1297,11 @@ select{
     </button>
 
     <div class="menu-section menu-section-last">
+     <button class="menu-action" id="exportAnalysis" data-menu-action>
+      <span><strong>Export AI analysis JSON</strong><small>Structured scope summary + canonical gaming/CPU/GPU/memory telemetry, even when sensors are not pinned.</small></span><span>↓</span>
+     </button>
      <button class="menu-action" id="exportCsv" data-menu-action>
-      <span><strong>Export telemetry CSV</strong><small>Download the collected pinned-sensor history.</small></span><span>↓</span>
+      <span><strong>Export analysis telemetry CSV</strong><small>Wide-format canonical telemetry for the selected lap/session scope.</small></span><span>↓</span>
      </button>
     </div>
    </div>
@@ -1426,6 +1500,43 @@ select{
   <div class="metric"><div class="k">Frame-time P95</div><div class="v" id="ftP95">—</div><div class="d">Sample percentile</div></div>
   <div class="metric"><div class="k">Frame-time P99</div><div class="v" id="ftP99">—</div><div class="d">Sample percentile</div></div>
   <div class="metric"><div class="k">Frame-time max</div><div class="v" id="ftMax">—</div><div class="d">Worst sampled value</div></div>
+ </div>
+
+ <div class="scope-analysis">
+  <div class="scope-analysis-head">
+   <strong>Scope analysis</strong>
+   <span id="analysisQuality">Collecting telemetry…</span>
+  </div>
+  <div class="scope-analysis-grid">
+   <div class="analysis-group">
+    <div class="analysis-group-title">Frame delivery</div>
+    <div class="analysis-row"><span>Median FPS</span><strong id="anFpsMedian">—</strong></div>
+    <div class="analysis-row"><span>P1 FPS</span><strong id="anFpsP1">—</strong></div>
+    <div class="analysis-row"><span>Frame time P95</span><strong id="anFtP95">—</strong></div>
+    <div class="analysis-row"><span>Below target</span><strong id="anBelowTarget">—</strong></div>
+   </div>
+   <div class="analysis-group">
+    <div class="analysis-group-title">Frame pipeline</div>
+    <div class="analysis-row"><span>CPU Busy median</span><strong id="anCpuBusy">—</strong></div>
+    <div class="analysis-row"><span>GPU Busy median</span><strong id="anGpuBusy">—</strong></div>
+    <div class="analysis-row"><span>CPU Busy P95</span><strong id="anCpuBusyP95">—</strong></div>
+    <div class="analysis-row"><span>GPU Busy P95</span><strong id="anGpuBusyP95">—</strong></div>
+   </div>
+   <div class="analysis-group">
+    <div class="analysis-group-title">GPU</div>
+    <div class="analysis-row"><span>Util median</span><strong id="anGpuUtil">—</strong></div>
+    <div class="analysis-row"><span>≥95% samples</span><strong id="anGpuSat">—</strong></div>
+    <div class="analysis-row"><span>Temp max</span><strong id="anGpuTemp">—</strong></div>
+    <div class="analysis-row"><span>Power median</span><strong id="anGpuPower">—</strong></div>
+   </div>
+   <div class="analysis-group">
+    <div class="analysis-group-title">CPU / limits</div>
+    <div class="analysis-row"><span>Max thread P95</span><strong id="anCpuThread">—</strong></div>
+    <div class="analysis-row"><span>Temp max</span><strong id="anCpuTemp">—</strong></div>
+    <div class="analysis-row"><span>Package power median</span><strong id="anCpuPower">—</strong></div>
+    <div class="analysis-row"><span>PPT / TDC / EDC max</span><strong id="anCpuLimits">—</strong></div>
+   </div>
+  </div>
  </div>
 </section>
 
@@ -1627,7 +1738,8 @@ const S={
  dragType:null,
  dragOriginalPins:null,
  dragDropped:false,
- pinPlaceholder:null
+ pinPlaceholder:null,
+ analysisRows:[]
 };
 
 function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._x);t._x=setTimeout(()=>t.style.display='none',3000)}
@@ -1786,6 +1898,10 @@ function overviewReading(kind){
   case 'gpuwait': return pick([[/\bgpu wait\b/,130]],[/^ms$/,/milliseconds/]);
   case 'gpulatency': return pick([[/\bgpu latency\b/,130]],[/^ms$/,/milliseconds/]);
   case 'displaylatency': return pick([[/\bdisplay latency\b/,140],[/\brender present latency\b/,130],[/\brender latency\b/,120],[/\bpresent latency\b/,110]],[/^ms$/,/milliseconds/]);
+  case 'gpupowerlimited': return pick([[/\bgpu power limited\b/,180],[/\bgpu.*power limit(ed)?\b/,150]]);
+  case 'gputemplimited': return pick([[/\bgpu temperature limited\b/,180],[/\bgpu.*thermal limit(ed)?\b/,150]]);
+  case 'gpucurrentlimited': return pick([[/\bgpu current limited\b/,180]]);
+  case 'gpuvoltagelimited': return pick([[/\bgpu voltage limited\b/,180]]);
  }
  return null;
 }
@@ -2148,6 +2264,289 @@ function scopeStatLabel(kind){
  return `Lap ${kind}`;
 }
 
+const ANALYSIS_METRICS=[
+ {key:'fps',label:'Presented FPS',unit:'FPS',group:'frame',get:()=>selectedSource('fps')},
+ {key:'frame_time_ms',label:'Frame Time',unit:'ms',group:'frame',get:()=>selectedSource('ft')},
+ {key:'cpu_busy_ms',label:'CPU Busy',unit:'ms',group:'pipeline',kind:'cpubusy'},
+ {key:'cpu_wait_ms',label:'CPU Wait',unit:'ms',group:'pipeline',kind:'cpuwait'},
+ {key:'gpu_busy_ms',label:'GPU Busy',unit:'ms',group:'pipeline',kind:'gbusy'},
+ {key:'gpu_wait_ms',label:'GPU Wait',unit:'ms',group:'pipeline',kind:'gpuwait'},
+ {key:'gpu_latency_ms',label:'GPU Latency',unit:'ms',group:'pipeline',kind:'gpulatency'},
+ {key:'display_latency_ms',label:'Display Latency',unit:'ms',group:'pipeline',kind:'displaylatency'},
+
+ {key:'gpu_util_pct',label:'GPU Utilization',unit:'%',group:'gpu',kind:'gpu'},
+ {key:'gpu_temp_c',label:'GPU Temperature',unit:'°C',group:'gpu',kind:'gt'},
+ {key:'gpu_hotspot_c',label:'GPU Hotspot',unit:'°C',group:'gpu',kind:'ghot'},
+ {key:'gpu_power_w',label:'GPU Power',unit:'W',group:'gpu',kind:'gp'},
+ {key:'gpu_clock_mhz',label:'GPU Core Clock',unit:'MHz',group:'gpu',kind:'gc'},
+ {key:'gpu_memory_clock_mhz',label:'GPU Memory Clock',unit:'MHz',group:'gpu',kind:'gmc'},
+ {key:'gpu_fan',label:'GPU Fan',unit:null,group:'gpu',kind:'gfan'},
+ {key:'gpu_power_limited',label:'GPU Power Limited',unit:null,group:'gpu_limit',kind:'gpupowerlimited'},
+ {key:'gpu_temp_limited',label:'GPU Temperature Limited',unit:null,group:'gpu_limit',kind:'gputemplimited'},
+ {key:'gpu_current_limited',label:'GPU Current Limited',unit:null,group:'gpu_limit',kind:'gpucurrentlimited'},
+ {key:'gpu_voltage_limited',label:'GPU Voltage Limited',unit:null,group:'gpu_limit',kind:'gpuvoltagelimited'},
+
+ {key:'cpu_total_pct',label:'CPU Total Usage',unit:'%',group:'cpu',kind:'cpu'},
+ {key:'cpu_max_thread_pct',label:'CPU Max Thread Usage',unit:'%',group:'cpu',kind:'cpumax'},
+ {key:'cpu_temp_c',label:'CPU Temperature',unit:'°C',group:'cpu',kind:'ct'},
+ {key:'cpu_package_power_w',label:'CPU Package Power',unit:'W',group:'cpu',kind:'cp'},
+ {key:'cpu_effective_clock_mhz',label:'CPU Effective Clock',unit:'MHz',group:'cpu',kind:'cc'},
+ {key:'cpu_thermal_limit_pct',label:'CPU Thermal Limit',unit:'%',group:'cpu_limit',kind:'thermallimit'},
+ {key:'cpu_ppt_limit_pct',label:'CPU PPT Limit',unit:'%',group:'cpu_limit',kind:'pptlimit'},
+ {key:'cpu_tdc_limit_pct',label:'CPU TDC Limit',unit:'%',group:'cpu_limit',kind:'tdclimit'},
+ {key:'cpu_edc_limit_pct',label:'CPU EDC Limit',unit:'%',group:'cpu_limit',kind:'edclimit'},
+ {key:'cpu_throttle_htc',label:'CPU Thermal Throttling HTC',unit:null,group:'cpu_limit',kind:'htc'},
+ {key:'cpu_prochot',label:'CPU PROCHOT',unit:null,group:'cpu_limit',kind:'prochotcpu'},
+ {key:'cpu_prochot_ext',label:'CPU PROCHOT EXT',unit:null,group:'cpu_limit',kind:'prochotext'},
+
+ {key:'ram_load_pct',label:'RAM Load',unit:'%',group:'memory',kind:'ramload'},
+ {key:'ram_used',label:'RAM Used',unit:null,group:'memory',kind:'ramused'},
+ {key:'ram_available',label:'RAM Available',unit:null,group:'memory',kind:'ramavail'},
+ {key:'memory_committed',label:'Committed Memory',unit:null,group:'memory',kind:'committed'},
+ {key:'vram_used',label:'VRAM Used',unit:null,group:'memory',kind:'vram'},
+ {key:'vram_load_pct',label:'VRAM Load',unit:'%',group:'memory',kind:'vramload'},
+ {key:'pagefile',label:'Page File',unit:null,group:'memory',kind:'pagefile'},
+ {key:'memory_errors',label:'Memory Errors',unit:null,group:'memory',kind:'memerrors'}
+];
+
+function analysisMetricReading(def){
+ return def.get?def.get():overviewReading(def.kind);
+}
+function activeLapIdAt(t){
+ let id=1;
+ for(const lap of S.laps){if(t>=lap.start)id=lap.id;else break}
+ return id;
+}
+function sampleAnalysisTelemetry(now=Date.now()){
+ if(!S.latest?.Ok)return;
+ const values={};
+ for(const def of ANALYSIS_METRICS){
+   const r=analysisMetricReading(def);
+   const v=r?n(r.Value):null;
+   values[def.key]=v;
+ }
+ S.analysisRows.push({t:now,lapId:activeLapIdAt(now),values});
+}
+function analysisRowsForScope(){
+ const rg=scopeRange();
+ return (S.analysisRows||[]).filter(row=>row.t>=rg.start&&row.t<=rg.end);
+}
+function metricValues(rows,key){
+ return rows.map(r=>n(r.values?.[key])).filter(Number.isFinite);
+}
+function median(a){return qtile(a,.5)}
+function avg(a){return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
+function maxv(a){return a.length?Math.max(...a):null}
+function minv(a){return a.length?Math.min(...a):null}
+function pctWhere(a,fn){return a.length?100*a.filter(fn).length/a.length:null}
+function statPack(a){
+ return {
+   count:a.length,
+   min:minv(a),max:maxv(a),avg:avg(a),median:median(a),
+   p01:a.length?qtile(a,.001):null,p1:a.length?qtile(a,.01):null,p5:a.length?qtile(a,.05):null,
+   p95:a.length?qtile(a,.95):null,p99:a.length?qtile(a,.99):null
+ };
+}
+function medianInterval(rows){
+ if(rows.length<2)return null;
+ const d=[];for(let i=1;i<rows.length;i++)d.push(rows[i].t-rows[i-1].t);
+ return median(d);
+}
+function analysisSummary(rows=analysisRowsForScope()){
+ const get=k=>metricValues(rows,k);
+ const fps=get('fps'),ft=get('frame_time_ms'),cb=get('cpu_busy_ms'),gb=get('gpu_busy_ms');
+ const gpu=get('gpu_util_pct'),gtemp=get('gpu_temp_c'),ghot=get('gpu_hotspot_c'),gp=get('gpu_power_w');
+ const cthread=get('cpu_max_thread_pct'),ctemp=get('cpu_temp_c'),cp=get('cpu_package_power_w');
+ const ppt=get('cpu_ppt_limit_pct'),tdc=get('cpu_tdc_limit_pct'),edc=get('cpu_edc_limit_pct');
+ const htc=get('cpu_throttle_htc'),pch=get('cpu_prochot'),pce=get('cpu_prochot_ext');
+ const target=Number(S.targetFps),budget=target>0?1000/target:null;
+
+ return {
+   scope:scopeRange(),
+   quality:{
+     samples:rows.length,
+     duration_ms:rows.length>1?rows.at(-1).t-rows[0].t:0,
+     median_sample_interval_ms:medianInterval(rows)
+   },
+   frame:{
+     fps:statPack(fps),
+     frame_time_ms:statPack(ft),
+     below_target_pct:target>0?pctWhere(fps,v=>v<target):null,
+     over_frame_budget_pct:budget!==null?pctWhere(ft,v=>v>budget):null,
+     target_fps:target>0?target:null,
+     frame_budget_ms:budget
+   },
+   pipeline:{
+     cpu_busy_ms:statPack(cb),
+     gpu_busy_ms:statPack(gb),
+     cpu_wait_ms:statPack(get('cpu_wait_ms')),
+     gpu_wait_ms:statPack(get('gpu_wait_ms')),
+     gpu_latency_ms:statPack(get('gpu_latency_ms')),
+     display_latency_ms:statPack(get('display_latency_ms'))
+   },
+   gpu:{
+     utilization_pct:statPack(gpu),
+     samples_ge_95_pct:pctWhere(gpu,v=>v>=95),
+     temperature_c:statPack(gtemp),
+     hotspot_c:statPack(ghot),
+     power_w:statPack(gp),
+     clock_mhz:statPack(get('gpu_clock_mhz')),
+     vram_load_pct:statPack(get('vram_load_pct')),
+     limits:{
+       power_active_samples:get('gpu_power_limited').filter(v=>v>0).length,
+       temperature_active_samples:get('gpu_temp_limited').filter(v=>v>0).length,
+       current_active_samples:get('gpu_current_limited').filter(v=>v>0).length,
+       voltage_active_samples:get('gpu_voltage_limited').filter(v=>v>0).length
+     }
+   },
+   cpu:{
+     total_pct:statPack(get('cpu_total_pct')),
+     max_thread_pct:statPack(cthread),
+     temperature_c:statPack(ctemp),
+     package_power_w:statPack(cp),
+     effective_clock_mhz:statPack(get('cpu_effective_clock_mhz')),
+     thermal_limit_pct:statPack(get('cpu_thermal_limit_pct')),
+     ppt_limit_pct:statPack(ppt),
+     tdc_limit_pct:statPack(tdc),
+     edc_limit_pct:statPack(edc),
+     throttle_active_samples:{
+       htc:htc.filter(v=>v>0).length,
+       prochot_cpu:pch.filter(v=>v>0).length,
+       prochot_ext:pce.filter(v=>v>0).length
+     }
+   },
+   memory:{
+     ram_load_pct:statPack(get('ram_load_pct')),
+     vram_load_pct:statPack(get('vram_load_pct')),
+     pagefile:statPack(get('pagefile')),
+     memory_errors:statPack(get('memory_errors'))
+   }
+ };
+}
+
+function updateScopeAnalysis(){
+ const rows=analysisRowsForScope(),s=analysisSummary(rows);
+ const val=(id,v,u='')=>{$(id).textContent=Number.isFinite(v)?`${v.toFixed(Math.abs(v)>=100?1:2)}${u?` ${u}`:''}`:'—'};
+ val('anFpsMedian',s.frame.fps.median,'FPS');
+ val('anFpsP1',s.frame.fps.p1,'FPS');
+ val('anFtP95',s.frame.frame_time_ms.p95,'ms');
+ $('anBelowTarget').textContent=Number.isFinite(s.frame.below_target_pct)?`${s.frame.below_target_pct.toFixed(1)} %`:'—';
+ val('anCpuBusy',s.pipeline.cpu_busy_ms.median,'ms');
+ val('anGpuBusy',s.pipeline.gpu_busy_ms.median,'ms');
+ val('anCpuBusyP95',s.pipeline.cpu_busy_ms.p95,'ms');
+ val('anGpuBusyP95',s.pipeline.gpu_busy_ms.p95,'ms');
+ val('anGpuUtil',s.gpu.utilization_pct.median,'%');
+ $('anGpuSat').textContent=Number.isFinite(s.gpu.samples_ge_95_pct)?`${s.gpu.samples_ge_95_pct.toFixed(1)} %`:'—';
+ val('anGpuTemp',s.gpu.temperature_c.max,'°C');
+ val('anGpuPower',s.gpu.power_w.median,'W');
+ val('anCpuThread',s.cpu.max_thread_pct.p95,'%');
+ val('anCpuTemp',s.cpu.temperature_c.max,'°C');
+ val('anCpuPower',s.cpu.package_power_w.median,'W');
+ const limits=[s.cpu.ppt_limit_pct.max,s.cpu.tdc_limit_pct.max,s.cpu.edc_limit_pct.max];
+ $('anCpuLimits').textContent=limits.some(Number.isFinite)
+   ?limits.map(v=>Number.isFinite(v)?`${v.toFixed(0)}%`:'—').join(' / ')
+   :'—';
+
+ const q=s.quality;
+ $('analysisQuality').textContent=q.samples
+   ?`${q.samples} samples · ${formatDuration(q.duration_ms)} · median interval ${Number.isFinite(q.median_sample_interval_ms)?Math.round(q.median_sample_interval_ms)+' ms':'—'}`
+   :'Collecting telemetry…';
+}
+
+function detectHardware(){
+ const groups=[...new Set((S.latest?.Readings||[]).map(r=>String(r.Sensor||'')))];
+ const cpu=groups.find(x=>/CPU\s*\[#?\d*\].*(Ryzen|Core|Intel|AMD)|Ryzen|Intel.*CPU/i.test(x))||null;
+ const gpu=groups.find(x=>/GPU\s*\[#?\d*\].*(Radeon|GeForce|Arc)|Radeon|GeForce|Intel Arc/i.test(x))||null;
+ return {cpu,gpu};
+}
+
+function analysisMetricDefinitions(){
+ const out={};
+ for(const def of ANALYSIS_METRICS){
+   const r=analysisMetricReading(def);
+   out[def.key]={
+     label:def.label,
+     canonical_unit:def.unit,
+     group:def.group,
+     source_sensor:r?.Sensor||null,
+     source_label:r?.Label||null,
+     source_unit:r?.Unit||null
+   };
+ }
+ return out;
+}
+
+function exportAnalysisJson(){
+ const rows=analysisRowsForScope(),summary=analysisSummary(rows),rg=scopeRange(),hardware=detectHardware();
+ const data={
+   schema:'hwinfo-performance-lab-analysis',
+   schema_version:1,
+   app_version:'7.0',
+   exported_at:new Date().toISOString(),
+   scope:{
+     label:rg.label,
+     start:new Date(rg.start).toISOString(),
+     end:new Date(rg.end).toISOString(),
+     selected:S.viewScope,
+     lap_id:rg.lapId??null
+   },
+   capture:{
+     source:'HWiNFO Shared Memory',
+     hwinfo_poll_ms:S.latest?.PollingPeriodMs??null,
+     browser_poll_ms:Number($('clientPoll').value)||null,
+     target_fps:Number(S.targetFps)>0?Number(S.targetFps):null,
+     percentiles_are_polling_samples:true,
+     raw_per_frame_presentmon:false
+   },
+   hardware,
+   metric_definitions:analysisMetricDefinitions(),
+   summary,
+   laps:S.laps.map((lap,i)=>({
+     id:lap.id,
+     start:new Date(lap.start).toISOString(),
+     end:new Date(i+1<S.laps.length?S.laps[i+1].start:Date.now()).toISOString(),
+     current:i===S.laps.length-1
+   })),
+   interpretation_notes:[
+     'FPS and frame-time percentiles are based on HWiNFO polling samples, not raw per-frame PresentMon events.',
+     'CPU Busy is time the CPU spent generating the sampled frame; GPU Busy is time the GPU spent working on the sampled frame.',
+     'PPT/TDC/EDC/Thermal Limit percentages are limit utilization, not percentages of time throttling.',
+     'HTC/PROCHOT and explicit GPU *Limited readings are exported separately as actual limit/throttle indicators when available.',
+     'Missing values mean the matching HWiNFO reading was not exposed or could not be mapped.'
+   ],
+   samples:rows.map(row=>({
+     timestamp:new Date(row.t).toISOString(),
+     elapsed_ms:row.t-S.sessionStart,
+     lap_id:row.lapId,
+     ...row.values
+   }))
+ };
+ const scopeName=rg.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ downloadBlob(JSON.stringify(data,null,2),'application/json',`hwinfo-analysis-${scopeName||'session'}-${stamp()}.json`);
+ toast('AI analysis JSON exported');
+}
+
+function exportAnalysisCsv(){
+ const rows=analysisRowsForScope(),rg=scopeRange();
+ const defs=ANALYSIS_METRICS,keys=defs.map(d=>d.key);
+ const header=['timestamp_iso','elapsed_ms','lap_id','target_fps','hwinfo_poll_ms',...keys];
+ const lines=[header.join(',')];
+ for(const row of rows){
+   const values=[
+     new Date(row.t).toISOString(),
+     row.t-S.sessionStart,
+     row.lapId,
+     Number(S.targetFps)>0?Number(S.targetFps):'',
+     S.latest?.PollingPeriodMs??'',
+     ...keys.map(k=>Number.isFinite(n(row.values?.[k]))?n(row.values[k]):'')
+   ];
+   lines.push(values.join(','));
+ }
+ const scopeName=rg.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+ downloadBlob(lines.join('\n'),'text/csv',`hwinfo-analysis-telemetry-${scopeName||'session'}-${stamp()}.csv`);
+ toast('Analysis telemetry CSV exported');
+}
+
 function sourceAgeMs(){if(!S.latest?.PollTimeUnix)return null;return Math.max(0,Date.now()-Number(S.latest.PollTimeUnix)*1000)}
 function addSample(k,v){
  v=n(v);if(v===null||!k)return;
@@ -2165,6 +2564,8 @@ function sampleNewSource(){
  const token=String(S.latest.PollTimeUnix||'');
  if(token&&token===S.lastSourceToken)return;
  S.lastSourceToken=token;S.samples++;
+ const sampleNow=Date.now();
+ sampleAnalysisTelemetry(sampleNow);
 
  // Pinned telemetry owns its own full-session history.
  for(const k of new Set(S.pins)){
@@ -2454,7 +2855,9 @@ function updateStatus(){
  $('sourceUpdate').style.color=age!==null&&age>3000?'var(--warn)':'';
 }
 function updateDynamic(){
- if(!S.latest?.Ok)return;updateSourceState();updateOverview();updatePins();updateFps();updateSensorCells();updateStatus();$('sampleCount').textContent=S.samples
+ if(!S.latest?.Ok)return;
+ updateSourceState();updateOverview();updatePins();updateFps();updateScopeAnalysis();updateSensorCells();updateStatus();
+ $('sampleCount').textContent=S.samples
 }
 
 const PRESETS={
@@ -2513,23 +2916,13 @@ function resetSession(){
  if(!confirm('Reset the entire local session? This clears pinned telemetry history, all laps and FPS analysis. HWiNFO built-in Min/Max/Avg remain untouched.'))return;
  const now=Date.now();
  S.histories=new Map();S.samples=0;S.sessionStart=now;S.lastSourceToken=null;
+ S.analysisRows=[];
  S.fpsAnalysis={fps:[],ft:[],startedAt:now};
  resetLapState();
  $('sampleCount').textContent='0';updateDynamic();toast('Entire session reset');
 }
 function clearPins(){if(!S.pins.length)return;if(!confirm('Remove all pinned cards?'))return;S.pins=[];save();syncPinsStructure();syncGroupStars()}
-function exportCsv(){
- const rg=scopeRange(),keys=[...new Set(S.pins.filter(Boolean))],rows=['timestamp,scope,sensor,label,value,unit'];
- for(const k of keys){
-   const r=reading(k);if(!r)continue;
-   for(const p of scopedHistory(k)){
-     const q=s=>`"${String(s??'').replaceAll('"','""')}"`;
-     rows.push([new Date(p.t).toISOString(),q(rg.label),q(r.Sensor),q(r.Label),p.v,q(r.Unit)].join(','));
-   }
- }
- const scopeName=rg.label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
- downloadBlob(rows.join('\n'),'text/csv',`hwinfo-${scopeName||'session'}-${stamp()}.csv`)
-}
+function exportCsv(){exportAnalysisCsv()}
 function stamp(){return new Date().toISOString().replace(/[:.]/g,'-')}
 function downloadBlob(content,type,name){const blob=new Blob([content],{type}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
@@ -2775,7 +3168,7 @@ $('pause').onclick=()=>{
  updateStatus();
  if(!S.paused){fetchOnce();schedulePoll()}
 };
-$('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;
+$('reset').onclick=resetSession;$('exportCsv').onclick=exportCsv;$('exportAnalysis').onclick=exportAnalysisJson;
 $('newLapQuick').onclick=newLap;$('newLapMenu').onclick=newLap;
 $('resetLaps').onclick=resetLapsOnly;
 $('lapView').addEventListener('change',e=>setViewScope(e.target.value));
