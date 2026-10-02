@@ -476,16 +476,32 @@ function Get-SnapshotJson {
     return ($snap | ConvertTo-Json -Depth 7 -Compress)
 }
 
+# Bind a dual-stack socket so clients resolving "localhost" to either
+# 127.0.0.1 (IPv4) or ::1 (IPv6) can reach us. We still reject any
+# non-loopback client below, so the bridge itself is not exposed to the LAN.
 $listener = [System.Net.Sockets.TcpListener]::new(
-    [System.Net.IPAddress]::Loopback, $Port
+    [System.Net.IPAddress]::IPv6Any, $Port
 )
+$listener.Server.DualMode = $true
+
+function Test-IsLoopbackAddress {
+    param([System.Net.IPAddress]$Address)
+
+    if ([System.Net.IPAddress]::IsLoopback($Address)) { return $true }
+
+    if ($Address.IsIPv4MappedToIPv6) {
+        return [System.Net.IPAddress]::IsLoopback($Address.MapToIPv4())
+    }
+
+    return $false
+}
 
 try {
     $listener.Start()
 }
 catch {
     Write-Host ""
-    Write-Host "Cannot listen on 127.0.0.1:$Port" -ForegroundColor Red
+    Write-Host "Cannot listen on localhost:$Port (IPv4/IPv6 dual stack)" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     Write-Host ""
     Write-Host "If another app uses 8080, run:" -ForegroundColor Yellow
@@ -498,7 +514,7 @@ Write-Host "====================================================" -ForegroundCol
 Write-Host " HWiNFO ALL-SENSORS WEB BRIDGE" -ForegroundColor Green
 Write-Host "====================================================" -ForegroundColor DarkGray
 Write-Host ""
-Write-Host "Local dashboard : http://127.0.0.1:$Port/" -ForegroundColor Cyan
+Write-Host "Local dashboard : http://localhost:$Port/  (127.0.0.1 + ::1)" -ForegroundColor Cyan
 Write-Host "JSON API       : http://127.0.0.1:$Port/api/sensors" -ForegroundColor DarkCyan
 Write-Host ""
 Write-Host "Then expose it with:" -ForegroundColor Yellow
@@ -515,6 +531,14 @@ try {
     while ($true) {
         $client = $listener.AcceptTcpClient()
         try {
+            $remote = $client.Client.RemoteEndPoint
+            if ($remote -is [System.Net.IPEndPoint]) {
+                if (-not (Test-IsLoopbackAddress $remote.Address)) {
+                    $client.Close()
+                    continue
+                }
+            }
+
             $stream = $client.GetStream()
             $reader = New-Object System.IO.StreamReader(
                 $stream, [System.Text.Encoding]::ASCII, $false, 4096, $true

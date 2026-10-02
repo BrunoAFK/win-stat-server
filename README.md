@@ -1,74 +1,35 @@
-HWiNFO ALL-SENSORS WEB BRIDGE v2
-=================================
+HWiNFO ALL-SENSORS WEB BRIDGE v2.1
+===================================
 
-WHAT CHANGED
-------------
-This version does NOT use the HWiNFO Gadget / VSB registry interface.
+FIX IN v2.1
+-----------
+The web listener is now dual-stack so both forms of Windows localhost work:
+- 127.0.0.1 (IPv4)
+- ::1       (IPv6)
 
-It reads HWiNFO Shared Memory directly, which means it can display every
-live reading HWiNFO publishes without manually checking "Report value in Gadget".
+This matters because Tunnelmole forwards to localhost:<port>, and Windows/Node
+may resolve localhost to IPv6.
 
-You get:
-- Every HWiNFO sensor group
-- Every live reading
-- Current value
-- Minimum
-- Maximum
-- Average
-- PresentMon readings such as FPS / frame time when HWiNFO exposes them
-- Search/filter in the browser
-- JSON endpoint at /api/sensors
+For safety, even though the socket is dual-stack, the bridge rejects requests
+whose source address is not loopback. It is therefore not intended to be
+directly exposed to your LAN. Tunnelmole remains the public-facing layer.
 
-SETUP
------
-1. Start HWiNFO64.
+QUICK TEST
+----------
+1. Start HWiNFO Sensors and enable Shared Memory Support.
+2. Run START-HWINFO-ALL.bat
+3. In PowerShell test all three:
 
-2. Make sure the Sensors window is open.
-   Sensors-only mode is perfect.
+   Invoke-WebRequest http://127.0.0.1:8080/ -UseBasicParsing
+   Invoke-WebRequest http://localhost:8080/ -UseBasicParsing
+   Invoke-WebRequest http://[::1]:8080/ -UseBasicParsing
 
-3. Enable:
-   HWiNFO Settings -> Shared Memory Support
+All should return StatusCode 200.
 
-   You do NOT need to configure "HWiNFO Gadget".
-   You do NOT need Remote Sensor Monitor.
-   You do NOT need OpenHardwareMonitorLib.dll.
-
-4. Double-click:
-   START-HWINFO-ALL.bat
-
-5. Test locally:
-   http://127.0.0.1:8080/
-
-6. To expose it temporarily to the Internet:
+4. Run:
    tmole.exe 8080
 
-   Open the HTTPS Tunnelmole URL from the remote computer.
+5. Open the generated HTTPS URL.
 
-FPS
----
-If PresentMon/FPS exists in the HWiNFO Sensors window while the game is running,
-this dashboard receives it automatically because it reads all HWiNFO shared-memory
-readings.
-
-Do not rely on the GPU driver's "Full Screen FPS = -1" value.
-
-TROUBLESHOOTING
----------------
-If the dashboard says the shared memory mapping does not exist:
-
-- Open the HWiNFO Sensors window.
-- Enable "Shared Memory Support".
-- If HWiNFO is running as Administrator, try running this bridge as Administrator too.
-  Matching privilege level can matter for access to the Global shared-memory object.
-
-If port 8080 is already occupied:
-  powershell -ExecutionPolicy Bypass -File .\hwinfo-all-web.ps1 -Port 8081
-
-Then:
-  tmole.exe 8081
-
-SECURITY
---------
-The bridge itself listens only on 127.0.0.1.
-Tunnelmole makes it reachable through its temporary public URL while tmole is running.
-Stop tmole when the troubleshooting session is over.
+If the first local URLs work but the Tunnelmole URL does not, copy the exact
+tmole.exe console output and HTTP error shown in the browser.
